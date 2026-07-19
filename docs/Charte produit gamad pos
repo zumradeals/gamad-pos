@@ -1,0 +1,180 @@
+# Charte Produit — GAMAD POS
+
+*Phase 0 — Livrable 1/4 (Charte produit). Version de naissance.*
+
+---
+
+## 0. Filiation
+
+GAMAD POS est le successeur direct d'Ikoma Stock. Il n'en reprend aucun détail
+d'implémentation, mais en hérite intégralement la **méthode** — capturée dans le
+document de passation "Ikoma Stock → GAMAD POS". Cette charte applique cette méthode
+au lieu de la redécouvrir.
+
+GAMAD POS est aussi le premier produit de la feuille de route IKOMA POS → GAMAD
+Business Network. Il en assume le périmètre Phase 1 ("IKOMA POS Core") sans
+anticiper les phases suivantes autrement que par les "petites graines" prévues au
+§10 du document de passation (ex. champ de visibilité produit préparé mais désactivé).
+
+---
+
+## 1. Mission
+
+Permettre à un commerce local — même tenu par une personne peu à l'aise avec la
+technologie — d'enregistrer ses ventes, son stock, ses créances et ses livraisons
+aussi facilement qu'il tiendrait un cahier, tout en préparant, sans l'imposer, sa
+future connexion à un réseau commercial plus large.
+
+---
+
+## 2. Public
+
+- Le propriétaire d'un commerce (1 à quelques points de vente).
+- Ses vendeurs, caissiers, magasiniers, livreurs.
+- Utilisateurs pouvant avoir une connexion faible ou intermittente.
+- Utilisateurs peu alphabétisés ou peu familiers des interfaces numériques.
+
+**Persona-limite (obligatoire, cf. document de passation §7)** :
+*Une personne qui ne saurait pas commander un Yango seule doit pouvoir enregistrer
+une vente sur GAMAD POS sans aide.*
+
+Ce test se pose littéralement à la conception de chaque écran, pas seulement à
+l'intuition du moment. Aucun écran n'est validé "simple" sur la base d'un avis
+esthétique.
+
+---
+
+## 3. Problèmes résolus
+
+- Le commerçant ne sait pas, en temps réel, combien il a vendu, encaissé, ou qui
+  lui doit de l'argent.
+- Le stock n'est pas fiable : ruptures non anticipées, pertes non tracées.
+- Les livraisons différées et les créances se perdent dans des cahiers ou la mémoire.
+- Aucune trace exploitable des clôtures de caisse, des écarts, des dépenses.
+- Le commerçant reste seul face à son marché : il ne peut ni voir, ni être vu.
+
+---
+
+## 4. Limites explicites du produit (ce que GAMAD POS n'est pas)
+
+- Ce n'est pas un ERP : chaque rôle ne voit que ce qui le concerne (§3.6 roadmap).
+- Ce n'est pas une comptabilité réglementaire complète (cf. §8.7 roadmap : "sans
+  prétendre remplacer").
+- Ce n'est pas un système de paiement : le paiement intégré aux ventes n'est jamais
+  obligatoire (§3.3 roadmap).
+- Ce n'est pas (encore) un réseau : toute fonction de mise en réseau (Market,
+  Supplier, Connect...) est hors périmètre de cette version. Elle est *préparée*,
+  jamais construite en avance (§10 document de passation).
+- Ce n'est pas dépendant d'un prestataire de paiement précis : le domaine métier
+  parle d'« abonnement », jamais directement du nom du prestataire (§3.5 roadmap).
+
+---
+
+## 5. Principes UX
+
+1. Le parcours de vente tient en une poignée d'étapes, sans confirmation inutile
+   ni chiffre superflu avant l'action (§6.4 roadmap).
+2. Chaque rôle a son propre accueil (§22 roadmap) : un vendeur ne voit jamais
+   l'écran d'un magasinier.
+3. Aucune donnée sensible (marge, prix d'achat, clients, créances) ne doit
+   apparaître comme "publiée par défaut" — la publication est toujours un acte
+   volontaire (§3.2 roadmap).
+4. Toute information dérivée d'un état ancien (stock, disponibilité) doit porter
+   sa fraîcheur de manière visible dès qu'elle quitte le cadre strictement privé.
+5. Un portage visuel n'est jamais supposé neutre : avant de reproduire un écran
+   maquetté, on se demande explicitement s'il déplace des pixels ou crée un
+   nouveau flux de données (§4 document de passation). Le second cas exige un
+   cadrage écrit avant tout prompt d'implémentation.
+6. Chaque écran est conçu pour le format d'appareil réellement utilisé par son
+   persona, pas pour un format unique par défaut. Le mobile est une contrainte
+   minimale à ne jamais perdre (§1 roadmap) — pas une cible exclusive : des
+   personas comme le caissier (clôture, impression thermique), le propriétaire
+   (lecture de synthèses) ou le magasinier (inventaire, corrections) sont
+   structurellement mieux servis par un poste fixe. Vendeur et livreur restent
+   mobile-first. Cette distinction doit être tranchée à la conception de chaque
+   écran, jamais laissée à l'intuition du moment ni retrofittée après coup
+   (§7 document de passation).
+
+---
+
+## 6. Séparation entre POS et réseau — invariant d'architecture
+
+Cette séparation est un **invariant**, pas une préférence esthétique
+(§1 document de passation) :
+
+- Le moteur métier (règles, invariants, permissions) ne connaît jamais l'écran.
+  Il doit rester compréhensible et vérifiable sans jamais ouvrir l'interface.
+- Aucune logique métier ne doit vivre dans un outil de maquettage (type Lovable
+  ou équivalent). Ce type d'outil ne sert que de référence de style et de
+  structure ; la logique se réécrit toujours, à la main, dans le vrai moteur,
+  et est vérifiée indépendamment (§5 document de passation).
+- Niveau 1 (IKOMA/GAMAD POS), Niveau 2 (Business Network local) et Niveau 3
+  (GAMAD Business Network continental) restent strictement séparés dès la
+  conception des données (§1 roadmap). GAMAD Core ne doit jamais contenir de
+  logique métier propre au POS (§21 roadmap).
+- Tout système de rôles ou de module activable se défend à deux niveaux :
+  navigation conditionnelle **et** contrôle d'accès au niveau de l'action elle-même
+  (policy/middleware). Cacher un lien ne suffit jamais (§9 document de passation).
+
+---
+
+## 7. Méthode de travail adoptée (rappel opérationnel)
+
+Ces règles s'appliquent à toute personne ou tout agent travaillant sur GAMAD POS :
+
+- Un chantier = un prompt = une vérification. Un prompt qui grossit en cours de
+  rédaction pour couvrir plusieurs sujets doit être découpé, jamais envoyé tel quel.
+- Aucune narration n'est acceptée comme preuve : sortie brute de commande, vrai
+  code, vrai diff — jamais un résumé. "Je l'ai vérifié" et "je fais confiance à ce
+  qui est écrit" ne se mélangent jamais dans une validation.
+- Toute migration touchant des données déjà en production suit une rigueur à part :
+  auto-activation de l'existant, gestion explicite des cas limites *avant* la
+  contrainte, et un test qui prouve que l'état "avant" n'est pas cassé.
+- Une erreur signalée se corrige immédiatement, sans la minimiser.
+- Ce qui est repoussé (vague 2, hors périmètre) est nommé explicitement et gardé
+  dans une liste vivante — jamais silencieusement oublié (voir §9 ci-dessous).
+
+---
+
+## 8. Livrables restants de la Phase 0
+
+Cette charte est le premier des quatre livrables obligatoires de la Phase 0
+(§5 roadmap). Restent à produire, comme documents vivants et non figés
+(§6 document de passation) :
+
+1. **Glossaire métier** — définitions précises (vente, facture, créance, stock
+   disponible/réservé/livré/en transit, etc.).
+2. **Matrice des rôles** — pour chaque rôle : voir / créer / modifier / annuler /
+   nécessite une autorisation.
+3. **Catalogue des invariants** — révisé à chaque découverte, jamais figé une
+   fois pour toutes.
+4. **Cartographie des événements métier**.
+
+À ces quatre livrables s'ajoute, comme extension naturelle imposée par la
+méthode :
+
+5. **Liste des fonctionnalités repoussées** — tout ce qui est explicitement mis
+   de côté (vague 2, hors périmètre), pour ne jamais refaire deux fois le même
+   travail de cadrage (§12 document de passation).
+
+---
+
+## 9. Fonctionnalités explicitement repoussées (liste vivante)
+
+*(À compléter au fil des décisions. Rien n'est retiré sans être déplacé ici.)*
+
+| Fonctionnalité | Statut | Raison du report | Graine préparée ? |
+|---|---|---|---|
+| Visibilité produit (privé/partenaire/réseau/public) | Repoussée à la Phase 4 | Nécessite d'abord un catalogue privé stable | Oui — champ prévu mais désactivé (§26 roadmap) |
+| Facturation SaaS / Genius Pay | Repoussée à la Phase 2 | Nécessite d'abord un produit opérationnel fiable | Non — traité en cycle 2 |
+| GAMAD ID / GAMAD Core | Repoussée à la Phase 12 | Dépendance à un système futur non encore existant | Oui — préparation sans dépendance immédiate (§26 roadmap) |
+
+---
+
+## 10. Formulation de la vision (rappel)
+
+> **GAMAD POS simplifie la gestion des commerces et prépare leur connexion à un
+> réseau commercial local intelligent.**
+
+Le produit doit rester petit dans son interface, mais préparé — sans jamais être
+alourdi — pour une capacité d'évolution immense.
