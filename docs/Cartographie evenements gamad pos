@@ -1,0 +1,326 @@
+# Cartographie des Événements Métier — GAMAD POS
+
+*Phase 0 — Livrable 5/5. Document vivant, à réviser à chaque nouvel événement
+identifié en marchant.*
+
+Chaque événement listé ici est un fait métier accompli, immuable une fois émis.
+Un événement ne décrit jamais une intention ni un état d'écran — il décrit
+quelque chose qui **s'est produit** dans le moteur de GAMAD POS, indépendamment
+de l'interface qui l'a déclenché.
+
+Tous les noms d'objets renvoient au Glossaire Métier ; toutes les règles
+associées renvoient au Catalogue des Invariants. Aucun événement ne doit
+contredire un invariant déjà catalogué.
+
+## Format de chaque entrée
+
+- **Événement** (nommé au participe passé, fait accompli)
+- **Déclenché par** (quel rôle ou quel processus)
+- **Contient** (données minimales portées par l'événement)
+- **Invariants engagés** (référence au Catalogue)
+- **Consommateurs potentiels** (qui, dans GAMAD POS ou plus tard dans GAMAD
+  Business Network, pourrait réagir à cet événement — sans que ce consommateur
+  existe nécessairement aujourd'hui)
+
+---
+
+## A. Vente et paiement
+
+### Vente créée
+- **Déclenché par** : vendeur, propriétaire, caissier (selon la Matrice des
+  rôles).
+- **Contient** : lignes de vente, produits, quantités, prix, point de vente,
+  client (le cas échéant).
+- **Invariants engagés** : B1, B2, B3, B4.
+- **Consommateurs potentiels** : clôture, stock (réservation ou sortie),
+  créance (si paiement partiel), indicateurs produit.
+
+### Vente validée
+- **Déclenché par** : le moteur, à l'issue du parcours de vente.
+- **Contient** : identifiant de la vente, montant total, statut de paiement.
+- **Invariants engagés** : B1, B4.
+- **Consommateurs potentiels** : clôture, stock, facturation.
+
+### Vente annulée
+- **Déclenché par** : rôle autorisé (cf. Matrice des rôles, cas transverse
+  n°2, encore à trancher).
+- **Contient** : référence à la vente d'origine, motif, auteur de l'annulation.
+- **Invariants engagés** : B1.
+- **Consommateurs potentiels** : stock (restitution), clôture, créance (si
+  existante, réexamen).
+
+### Remise appliquée
+- **Déclenché par** : vendeur (dans la limite) ou rôle autorisant (au-delà).
+- **Contient** : ligne de vente concernée, montant ou taux, motif, autorisation
+  associée le cas échéant.
+- **Invariants engagés** : B3.
+- **Consommateurs potentiels** : clôture, indicateurs de marge.
+
+### Paiement reçu
+- **Déclenché par** : vendeur, caissier.
+- **Contient** : montant, mode de paiement, vente ou créance rattachée.
+- **Invariants engagés** : B4, C2.
+- **Consommateurs potentiels** : encaissement, clôture, créance (mise à jour du
+  reste dû).
+
+### Monnaie rendue calculée
+- **Déclenché par** : le moteur, lors de la finalisation d'un paiement en
+  espèces.
+- **Contient** : montant remis, montant dû, différence.
+- **Invariants engagés** : —
+- **Consommateurs potentiels** : ticket de vente.
+
+### Facture émise
+- **Déclenché par** : vendeur, propriétaire.
+- **Contient** : référence à la vente, montant, client.
+- **Invariants engagés** : B4.
+- **Consommateurs potentiels** : comptabilité simplifiée, export.
+
+### Retour enregistré
+- **Déclenché par** : vendeur, propriétaire.
+- **Contient** : référence à la vente d'origine, produits retournés, quantités.
+- **Invariants engagés** : A1.
+- **Consommateurs potentiels** : stock (réception), remboursement.
+
+### Remboursement effectué
+- **Déclenché par** : caissier, propriétaire.
+- **Contient** : montant, référence au retour ou à l'annulation d'origine.
+- **Invariants engagés** : —
+- **Consommateurs potentiels** : clôture, encaissement (négatif).
+
+---
+
+## B. Créance
+
+### Créance créée
+- **Déclenché par** : le moteur, à la validation d'une vente insuffisamment
+  payée.
+- **Contient** : client, montant initial, vente d'origine, échéance.
+- **Invariants engagés** : C1.
+- **Consommateurs potentiels** : rappels, rapports de créances, indicateurs de
+  risque.
+
+### Versement sur créance enregistré
+- **Déclenché par** : caissier, vendeur, propriétaire.
+- **Contient** : créance concernée, montant, mode de paiement.
+- **Invariants engagés** : C2.
+- **Consommateurs potentiels** : reçu de versement, mise à jour du reste dû.
+
+### Créance soldée
+- **Déclenché par** : le moteur, quand le reste dû atteint zéro.
+- **Contient** : créance concernée, date de solde.
+- **Invariants engagés** : C2, B5.
+- **Consommateurs potentiels** : rapports, historique client.
+
+### Échéance de créance dépassée
+- **Déclenché par** : le moteur, de façon planifiée.
+- **Contient** : créance concernée, nombre de jours de retard.
+- **Invariants engagés** : —
+- **Consommateurs potentiels** : rappels, indicateurs de créances risquées.
+
+---
+
+## C. Stock
+
+### Marchandise reçue
+- **Déclenché par** : magasinier, propriétaire.
+- **Contient** : produit, quantité, emplacement, fournisseur le cas échéant.
+- **Invariants engagés** : A1.
+- **Consommateurs potentiels** : stock disponible, coût d'achat, alerte de
+  seuil.
+
+### Stock déplacé (transfert)
+- **Déclenché par** : magasinier, propriétaire.
+- **Contient** : produit, quantité, emplacement source, emplacement
+  destination.
+- **Invariants engagés** : A1, A3.
+- **Consommateurs potentiels** : stock en transit, réception à destination.
+
+### Stock réceptionné après transit
+- **Déclenché par** : magasinier au point d'arrivée.
+- **Contient** : référence au transfert, quantité effectivement reçue.
+- **Invariants engagés** : A1, A3.
+- **Consommateurs potentiels** : stock disponible à destination.
+
+### Stock réservé
+- **Déclenché par** : le moteur, lors d'une commande ou d'un acompte.
+- **Contient** : produit, quantité, commande ou vente d'origine.
+- **Invariants engagés** : A3.
+- **Consommateurs potentiels** : calcul du stock disponible.
+
+### Correction de stock enregistrée
+- **Déclenché par** : magasinier ou propriétaire, avec autorisation.
+- **Contient** : produit, quantité avant/après, motif, autorisation.
+- **Invariants engagés** : A1, A2.
+- **Consommateurs potentiels** : rapports d'écarts, inventaire.
+
+### Inventaire réalisé
+- **Déclenché par** : magasinier, propriétaire.
+- **Contient** : date, emplacement, écarts constatés par produit.
+- **Invariants engagés** : A1.
+- **Consommateurs potentiels** : corrections de stock associées.
+
+### Seuil d'alerte atteint
+- **Déclenché par** : le moteur, après tout mouvement de sortie.
+- **Contient** : produit, emplacement, quantité restante, seuil configuré.
+- **Invariants engagés** : —
+- **Consommateurs potentiels** : notification propriétaire, suggestion
+  d'achat (Phase 3).
+
+---
+
+## D. Livraison
+
+### Livraison planifiée
+- **Déclenché par** : vendeur, propriétaire.
+- **Contient** : vente ou commande d'origine, client, lieu, date prévue,
+  responsable.
+- **Invariants engagés** : D1.
+- **Consommateurs potentiels** : agenda du livreur, stock réservé.
+
+### Marchandise livrée
+- **Déclenché par** : livreur.
+- **Contient** : livraison concernée, quantité livrée, preuve, montant récupéré
+  le cas échéant.
+- **Invariants engagés** : D2.
+- **Consommateurs potentiels** : stock (sortie livrée), clôture, reste à
+  livrer.
+
+### Livraison partielle enregistrée
+- **Déclenché par** : livreur.
+- **Contient** : livraison concernée, quantité livrée, reste à livrer recalculé.
+- **Invariants engagés** : D2.
+- **Consommateurs potentiels** : nouvelle livraison planifiée pour le reliquat.
+
+### Incident de livraison signalé
+- **Déclenché par** : livreur.
+- **Contient** : livraison concernée, nature de l'incident.
+- **Invariants engagés** : —
+- **Consommateurs potentiels** : suivi propriétaire, éventuel retour.
+
+---
+
+## E. Clôture
+
+### Clôture ouverte
+- **Déclenché par** : caissier, propriétaire.
+- **Contient** : point de vente, période concernée.
+- **Invariants engagés** : —
+- **Consommateurs potentiels** : agrégation des ventes/encaissements de la
+  période.
+
+### Clôture validée
+- **Déclenché par** : propriétaire ou responsable désigné.
+- **Contient** : totaux (ventes, espèces attendues/comptées, Mobile Money,
+  crédit, dépenses), écarts constatés.
+- **Invariants engagés** : H1, H2.
+- **Consommateurs potentiels** : rapports périodiques, comptabilité simplifiée.
+
+### Écart de clôture constaté
+- **Déclenché par** : le moteur, lors de la validation de clôture.
+- **Contient** : montant théorique, montant compté, différence.
+- **Invariants engagés** : H2.
+- **Consommateurs potentiels** : indicateurs de confiance, suivi propriétaire.
+
+### Clôture rouverte
+- **Déclenché par** : propriétaire, avec motif obligatoire.
+- **Contient** : clôture concernée, motif, autorisation.
+- **Invariants engagés** : H1.
+- **Consommateurs potentiels** : audit, historique.
+
+---
+
+## F. Catalogue et entreprise
+
+### Produit créé
+- **Déclenché par** : propriétaire, magasinier (selon droits).
+- **Contient** : nom, catégorie, unité, prix de vente, prix d'achat, visibilité
+  par défaut (privée).
+- **Invariants engagés** : E2.
+- **Consommateurs potentiels** : catalogue privé, stock initial.
+
+### Produit désactivé
+- **Déclenché par** : propriétaire.
+- **Contient** : produit concerné, motif éventuel.
+- **Invariants engagés** : —
+- **Consommateurs potentiels** : catalogue, ventes futures bloquées.
+
+### Entreprise créée
+- **Déclenché par** : propriétaire, lors de l'inscription.
+- **Contient** : identité commerciale, secteur, devise, pays.
+- **Invariants engagés** : —
+- **Consommateurs potentiels** : abonnement, GAMAD ID (préparé, non actif).
+
+### Point de vente créé
+- **Déclenché par** : propriétaire.
+- **Contient** : entreprise rattachée, nom, adresse.
+- **Invariants engagés** : —
+- **Consommateurs potentiels** : stock, ventes, clôtures rattachées.
+
+### Utilisateur rattaché à un rôle
+- **Déclenché par** : propriétaire.
+- **Contient** : utilisateur, entreprise, rôle attribué, points de vente
+  concernés.
+- **Invariants engagés** : G1.
+- **Consommateurs potentiels** : contrôle d'accès, journal des connexions.
+
+### Catalogue publié *(dormant en Phase 1, cf. Catalogue des Invariants, section E)*
+- **Déclenché par** : propriétaire, quand la fonctionnalité sera activée.
+- **Contient** : produit, niveau de visibilité choisi, champs publiés.
+- **Invariants engagés** : E1, E2, E3.
+- **Consommateurs potentiels** : future recherche réseau (hors périmètre
+  Phase 1).
+
+---
+
+## G. Abonnement GAMAD POS
+
+### Abonnement activé
+- **Déclenché par** : le moteur, après confirmation de paiement d'abonnement.
+- **Contient** : entreprise, offre souscrite, date de début.
+- **Invariants engagés** : F1.
+- **Consommateurs potentiels** : accès aux fonctionnalités de l'offre.
+
+### Paiement d'abonnement reçu
+- **Déclenché par** : intégration de paiement d'abonnement (prestataire non
+  nommé dans le domaine métier).
+- **Contient** : montant, offre, entreprise.
+- **Invariants engagés** : F1.
+- **Consommateurs potentiels** : activation, reçu, renouvellement.
+
+### Abonnement suspendu
+- **Déclenché par** : le moteur, après échéance non honorée et fin de période
+  de grâce.
+- **Contient** : entreprise, date de suspension.
+- **Invariants engagés** : F2.
+- **Consommateurs potentiels** : restriction d'accès (lecture seule), export
+  proposé.
+
+### Abonnement réactivé
+- **Déclenché par** : le moteur, après régularisation du paiement.
+- **Contient** : entreprise, date de réactivation.
+- **Invariants engagés** : F1, F2.
+- **Consommateurs potentiels** : levée des restrictions d'accès.
+
+---
+
+## Ce que cette cartographie ne couvre pas encore
+
+Conformément au principe de découverte progressive, certains événements ne
+sont volontairement pas détaillés ici tant que la fonctionnalité correspondante
+n'est pas active dans GAMAD POS (cf. liste des fonctionnalités repoussées,
+Charte Produit §9) :
+
+- Les événements liés aux demandes inversées, à la réputation, ou à
+  l'intelligence commerciale : ils appartiennent à des phases ultérieures et
+  seront cartographiés au moment de leur cadrage, jamais anticipés ici.
+- Les événements liés à un futur socle d'identité fédéré : seule une graine
+  (référence d'entreprise et d'utilisateur préparée pour être compatible) est
+  anticipée ; aucun événement d'identité fédérée n'est catalogué avant que ce
+  socle existe réellement.
+
+---
+
+*Dernière révision : version de naissance, avant toute implémentation. Comme
+les quatre livrables précédents, cette cartographie est mise à jour à chaque
+événement métier découvert en marchant — jamais rédigée une fois pour toutes.*
