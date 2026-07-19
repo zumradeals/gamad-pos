@@ -1,0 +1,174 @@
+# Matrice des Rôles — GAMAD POS
+
+*Phase 0 — Livrable 3/4. Document vivant, à réviser dès qu'un rôle ou une action
+change de nature.*
+
+Chaque terme employé ici (vente, créance, mouvement, clôture, etc.) renvoie
+strictement à sa définition dans le Glossaire Métier — aucune redéfinition
+implicite n'est tolérée dans ce document.
+
+## Principe non négociable
+
+Cette matrice décrit une intention métier. Elle ne devient une règle réelle que
+lorsqu'elle est appliquée **à deux niveaux simultanément** (invariant §9 document
+de passation) :
+
+1. **Navigation** — un rôle ne voit dans l'interface que les écrans et actions
+   listés ici comme "voir" ou "créer/modifier".
+2. **Contrôle d'accès côté moteur** — chaque action est en plus vérifiée par une
+   policy/un middleware indépendant de l'écran, qui refuse l'action même si elle
+   est appelée directement (API, script, contournement de l'UI).
+
+Une case cochée dans cette matrice sans son contrôle d'accès moteur correspondant
+n'est pas une règle appliquée — c'est un lien caché dans un menu, ce qui ne suffit
+jamais.
+
+## Légende
+
+- **Voir** : peut consulter la donnée ou l'écran concerné.
+- **Créer** : peut initier une nouvelle occurrence de l'objet.
+- **Modifier** : peut changer un objet déjà créé, non encore clos/validé de
+  façon définitive.
+- **Annuler** : peut invalider un objet déjà validé (toujours tracé, jamais une
+  suppression silencieuse — cf. Glossaire, "Annulation").
+- **Autorisation requise** : l'action est possible mais nécessite une validation
+  explicite d'un rôle supérieur ou une justification enregistrée (motif, etc.).
+
+---
+
+## 1. Propriétaire
+
+| Domaine | Voir | Créer | Modifier | Annuler | Autorisation requise |
+|---|---|---|---|---|---|
+| Ventes (toutes, tous vendeurs) | Oui | Oui | Oui | Oui | — |
+| Produits / catalogue privé | Oui | Oui | Oui | Oui (désactivation) | — |
+| Prix d'achat / marges | Oui | Oui | Oui | — | — |
+| Stock (tous emplacements) | Oui | Oui | Oui | — | Correction : oui, sans autorisation supplémentaire (il est l'autorité) |
+| Créances | Oui | Oui | Oui | Oui | — |
+| Livraisons | Oui | Oui | Oui | Oui | — |
+| Dépenses | Oui | Oui | Oui | Oui | — |
+| Achats / fournisseurs | Oui | Oui | Oui | Oui | — |
+| Équipe / rôles | Oui | Oui | Oui | Oui (retrait accès) | — |
+| Points de vente / dépôts | Oui | Oui | Oui | — | — |
+| Clôtures (toutes) | Oui | — | — | — | Validation finale : oui |
+| Abonnement GAMAD | Oui | — | Oui (renouvellement) | — | — |
+| Remise exceptionnelle | Oui | Oui | — | — | Est lui-même l'autorité de validation |
+
+**Ne peut pas** : contourner la traçabilité (aucune suppression silencieuse
+d'une vente validée, même en tant que propriétaire — invariant §21 roadmap).
+
+---
+
+## 2. Vendeur
+
+| Domaine | Voir | Créer | Modifier | Annuler | Autorisation requise |
+|---|---|---|---|---|---|
+| Ventes (les siennes) | Oui | Oui | Avant validation seulement | Non | Annulation après validation : autorisation propriétaire/caissier requise |
+| Produits / catalogue | Oui (lecture) | Non | Non | Non | — |
+| Stock disponible | Oui | Non | Non | Non | — |
+| Créances (création) | Oui (celles liées à ses ventes) | Oui | Non | Non | — |
+| Livraison (sélection du mode) | Oui | Oui (rattachée à sa vente) | Non | Non | — |
+| Remise | Oui | Oui, dans une limite prédéfinie | — | — | Au-delà du seuil : autorisation propriétaire/caissier |
+| Vente gratuite | — | Non par défaut | — | — | Toujours soumise à autorisation (invariant §21 roadmap) |
+| Prix d'achat / marges | Non | — | — | — | — |
+| Clôture | Voit sa propre synthèse | Non | Non | Non | — |
+
+---
+
+## 3. Caissier
+
+| Domaine | Voir | Créer | Modifier | Annuler | Autorisation requise |
+|---|---|---|---|---|---|
+| Encaissements | Oui | Oui | Non | Non | — |
+| Reçus | Oui | Oui | Non | Non | — |
+| Caisse (entrées/sorties) | Oui | Oui | Non | Non | Retrait exceptionnel : autorisation propriétaire |
+| Versements sur créance | Oui | Oui | Non | Non | — |
+| Clôture (son point de vente) | Oui | Oui (initie) | Non | Non | Validation finale : propriétaire ou responsable désigné |
+| Ventes | Voit celles de son point de vente | Non (sauf s'il cumule le rôle vendeur) | Non | Non | — |
+| Écarts de caisse | Oui (constat) | Oui (déclaration) | Non | Non | Justification obligatoire, jamais de correction silencieuse |
+
+---
+
+## 4. Magasinier
+
+| Domaine | Voir | Créer | Modifier | Annuler | Autorisation requise |
+|---|---|---|---|---|---|
+| Stock (mouvements) | Oui | Oui (réception, sortie, transfert) | Non | Non | — |
+| Inventaire | Oui | Oui | Oui | — | — |
+| Correction de stock | Oui | Oui | — | — | Toujours soumise à autorisation explicite (invariant §21 roadmap) |
+| Préparation de commande | Oui | Oui | Oui | Non | — |
+| Créances / ventes / prix | Non | Non | Non | Non | — |
+| Transferts entre dépôts/points de vente | Oui | Oui | Non | Non | Selon seuil, autorisation propriétaire |
+
+---
+
+## 5. Livreur
+
+| Domaine | Voir | Créer | Modifier | Annuler | Autorisation requise |
+|---|---|---|---|---|---|
+| Commandes à livrer (les siennes) | Oui | Non | Non | Non | — |
+| Statut de livraison | Oui | Non | Oui (progression du statut) | Non | — |
+| Preuve de livraison | Oui | Oui | Non | Non | — |
+| Montant à récupérer | Oui | Non | Non | Non | — |
+| Client (coordonnées liées à sa livraison) | Oui | Non | Non | Non | — |
+| Stock / prix / créances globales | Non | Non | Non | Non | — |
+
+---
+
+## 6. Fournisseur *(rôle externe, accès limité à son propre périmètre)*
+
+| Domaine | Voir | Créer | Modifier | Annuler | Autorisation requise |
+|---|---|---|---|---|---|
+| Son catalogue publié | Oui | Oui | Oui | Oui (dépublication) | — |
+| Demandes reçues | Oui | Non | Non (répond, ne modifie pas la demande) | Non | — |
+| Ses commandes / suivi | Oui | Non (le commerçant crée la commande) | Non | Non | — |
+| Catalogue / stock / clients du commerce | Non | Non | Non | Non | — |
+| Propositions de modification de prix | Oui | Oui (proposition) | — | — | Le commerçant décide seul de l'acceptation (§12 roadmap) |
+
+---
+
+## 7. Client *(rôle externe, hors périmètre Phase 1 opérationnelle, préparé)*
+
+| Domaine | Voir | Créer | Modifier | Annuler | Autorisation requise |
+|---|---|---|---|---|---|
+| Produits publiés (visibilité "public") | Oui | Non | Non | Non | — |
+| Demande inversée | Oui (les siennes) | Oui | Non | Oui (retrait) | Modération (Phase 6, hors périmètre immédiat) |
+| Devis reçus | Oui | Non | Non | Non | — |
+| Données privées du commerce | Non | Non | Non | Non | — |
+
+*Ce rôle n'est pas activé en Phase 1 — sa présence ici est une graine
+préparatoire (cf. Charte Produit §9), pas une fonctionnalité livrée.*
+
+---
+
+## 8. Administrateur GAMAD *(supra-entreprise, transverse)*
+
+| Domaine | Voir | Créer | Modifier | Annuler | Autorisation requise |
+|---|---|---|---|---|---|
+| Abonnements (toutes entreprises) | Oui | Oui (activation) | Oui | Oui (suspension) | Suspension : jamais de destruction de données (§7.3 roadmap) |
+| Entreprises | Oui | Oui (assistance) | Oui (assistance) | Non | — |
+| Incidents / assistance | Oui | Oui | Oui | Non | — |
+| Modules activables | Oui | Oui (activation) | Oui | Oui (désactivation) | — |
+| Statistiques d'usage agrégées | Oui | Non | Non | Non | — |
+| Données privées d'un commerce (ventes, clients, stock détaillé) | **Non**, sauf action d'assistance explicitement demandée et tracée | Non | Non | Non | Toute exception est un événement audité |
+| Conformité / modération | Oui | Oui | Oui | Oui | — |
+
+---
+
+## Cas transverses à trancher explicitement (non encore résolus)
+
+Ces questions ne sont pas encore répondues par la roadmap ni par cette matrice —
+elles sont notées ici plutôt que laissées implicites, conformément au principe
+"rien ne se perd silencieusement" :
+
+1. Un même utilisateur peut-il cumuler plusieurs rôles sur un même point de vente
+   (ex. vendeur + caissier) ? Si oui, ses droits sont-ils l'union stricte des deux
+   lignes, ou existe-t-il des incompatibilités (séparation des tâches) ?
+2. Qui, précisément, peut valider une annulation de vente déjà validée en
+   l'absence du propriétaire (caissier seul suffisant, ou toujours le
+   propriétaire) ?
+3. Le seuil de remise "sans autorisation" pour le vendeur est-il un pourcentage
+   fixe, un montant fixe, ou paramétrable par entreprise ?
+
+Tant que ces points ne sont pas tranchés, aucune implémentation ne doit figer une
+réponse par défaut sans qu'elle soit reportée ici.
