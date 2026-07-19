@@ -1,0 +1,258 @@
+# Catalogue des Invariants — GAMAD POS
+
+*Phase 0 — Livrable 4/4. Document vivant par nature : chaque invariant listé ici
+a vocation à être complété au fil des découvertes, jamais figé (cf. document de
+passation §6). Ce catalogue n'est jamais "terminé" — il est daté à chaque
+révision.*
+
+## Ce qu'est un invariant, ici
+
+Un invariant est une règle qui doit rester vraie **quel que soit l'écran, le
+rôle, ou l'agent qui produit l'action**. Un invariant ne vit jamais uniquement
+dans l'interface — il vit dans le moteur métier (Services, Policies, Enums,
+Exceptions métier), et il est protégé par au moins un test qui le prouve, pas
+seulement documenté (cf. Charte Produit §6, §7).
+
+Format de chaque entrée :
+- **Règle**
+- **Pourquoi** (le risque si elle est absente)
+- **Où elle vit** (quel objet du moteur en est responsable)
+- **Comment elle est protégée** (nature du test attendu)
+
+---
+
+## A. Intégrité du stock
+
+### A1. Toute modification de stock génère un mouvement traçable
+- **Pourquoi** : sans mouvement, un écart de stock devient inexplicable et
+  incorrigible a posteriori.
+- **Où elle vit** : tout changement de quantité passe par un objet Mouvement ;
+  aucune écriture directe sur la quantité stockée n'est permise ailleurs dans le
+  moteur.
+- **Comment elle est protégée** : test garantissant qu'il est impossible de
+  modifier une quantité de stock sans qu'un Mouvement correspondant soit créé
+  dans le même processus.
+
+### A2. Une correction de stock exige toujours une autorisation explicite
+- **Pourquoi** : une correction non autorisée est indiscernable d'une
+  falsification.
+- **Où elle vit** : le type de mouvement "correction" porte obligatoirement une
+  référence à l'autorisation qui l'a validée.
+- **Comment elle est protégée** : test vérifiant qu'une correction sans
+  autorisation associée est rejetée par le moteur, pas seulement masquée côté UI.
+
+### A3. Le stock disponible, réservé, en transit et livré ne se chevauchent jamais
+- **Pourquoi** : une même unité de stock comptée deux fois donne une fausse
+  disponibilité, source directe de survente.
+- **Où elle vit** : le calcul du stock disponible exclut systématiquement les
+  quantités réservées et en transit.
+- **Comment elle est protégée** : test vérifiant la somme des quatre catégories
+  contre la quantité totale théorique, sur des scénarios de transferts et
+  réservations concurrents.
+
+---
+
+## B. Intégrité des ventes et paiements
+
+### B1. Une vente validée ne peut pas être supprimée silencieusement
+- **Pourquoi** : c'est le socle de toute confiance dans l'historique commercial
+  et dans une future clôture.
+- **Où elle vit** : le statut "validée" interdit toute suppression physique ;
+  seule une annulation tracée est possible.
+- **Comment elle est protégée** : test vérifiant qu'aucune route ou service ne
+  permet la suppression physique d'une vente validée.
+
+### B2. Une vente gratuite exige une autorisation
+- **Pourquoi** : sans ce garde-fou, la gratuité devient un canal de fuite non
+  contrôlé.
+- **Où elle vit** : toute ligne de vente à prix nul déclenche une vérification
+  d'autorisation avant validation.
+- **Comment elle est protégée** : test vérifiant qu'une vente à montant total nul
+  sans autorisation associée est rejetée.
+
+### B3. Une remise importante doit être justifiée
+- **Pourquoi** : identique à B2, mais pour les cas partiels — une remise non
+  plafonnée est une fuite progressive de marge non traçable.
+- **Où elle vit** : seuil de remise "libre" défini par entreprise (cf. Matrice
+  des rôles, cas transverse n°3, encore à trancher) ; au-delà, motif et
+  autorisation obligatoires.
+- **Comment elle est protégée** : test vérifiant le rejet d'une remise
+  au-dessus du seuil sans motif enregistré.
+
+### B4. Une facture, une vente et un paiement ne sont pas le même objet
+- **Pourquoi** : les confondre empêche de représenter une vente partiellement
+  payée, une facture sans vente enregistrée, ou un paiement couvrant plusieurs
+  factures.
+- **Où elle vit** : trois entités distinctes du moteur, reliées mais jamais
+  fusionnées.
+- **Comment elle est protégée** : test vérifiant qu'un paiement partiel laisse
+  la vente dans un état cohérent (créance ouverte) sans jamais forcer un lien
+  1-pour-1 facture/paiement.
+
+### B5. Une vente à montant nul ne doit jamais rester indéfiniment "non payée"
+*(invariant découvert en marchant sur Ikoma Stock — reformulé ici pour GAMAD POS,
+cf. document de passation §6)*
+- **Pourquoi** : un statut de paiement incohérent avec un montant dû de zéro
+  pollue silencieusement les rapports de créances et de clôture.
+- **Où elle vit** : le calcul du statut de paiement doit traiter explicitement
+  le cas d'un montant dû nul comme "soldé", jamais comme un cas par défaut non
+  géré.
+- **Comment elle est protégée** : test dédié couvrant explicitement le cas
+  montant dû = 0.
+
+---
+
+## C. Créances
+
+### C1. Une créance exige toujours un débiteur identifiable
+- **Pourquoi** : une créance anonyme est une créance irrécouvrable et
+  inexploitable dans un rapport.
+- **Où elle vit** : la création d'une créance échoue si aucun client identifié
+  n'est associé.
+- **Comment elle est protégée** : test vérifiant le rejet de toute tentative de
+  créance sans client.
+
+### C2. Le reste dû d'une créance ne peut jamais devenir négatif
+- **Pourquoi** : un reste dû négatif signale soit un bug de calcul, soit un
+  trop-perçu non traité comme tel (qui devrait devenir un remboursement ou un
+  avoir, pas un solde négatif silencieux).
+- **Où elle vit** : le calcul du reste dû plafonne à zéro ; tout excédent
+  déclenche un traitement explicite (remboursement).
+- **Comment elle est protégée** : test de versement supérieur au reste dû.
+
+---
+
+## D. Livraison
+
+### D1. Une livraison différée exige un client retrouvable
+- **Pourquoi** : sans coordonnées fiables, une livraison différée ne peut être
+  honorée ni tracée en cas de litige.
+- **Où elle vit** : la création d'une livraison différée échoue sans client
+  identifié et retrouvable (coordonnées minimales requises).
+- **Comment elle est protégée** : test vérifiant le rejet d'une livraison
+  différée sans les coordonnées minimales.
+
+### D2. Le reste à livrer ne peut jamais dépasser la quantité vendue
+- **Pourquoi** : symétrique de C2, pour éviter une survente masquée par des
+  livraisons partielles mal calculées.
+- **Où elle vit** : le calcul du reste à livrer se fait à partir de la quantité
+  vendue moins les livraisons déjà effectuées, jamais par incrémentation libre.
+- **Comment elle est protégée** : test de livraisons partielles successives
+  dépassant la quantité initiale.
+
+---
+
+## E. Catalogue et publication
+
+### E1. Le catalogue privé et le catalogue public sont séparés
+- **Pourquoi** : c'est la garantie que rien ne fuit vers le réseau sans passage
+  par un acte de publication explicite.
+- **Où elle vit** : aucune donnée de catalogue n'est visible au niveau réseau
+  sans un enregistrement de publication distinct et explicite pour ce produit.
+- **Comment elle est protégée** : test vérifiant qu'un produit créé sans acte de
+  publication n'apparaît dans aucune requête de niveau "réseau" ou "public".
+
+### E2. La publication d'un produit est un consentement explicite
+- **Pourquoi** : c'est le principe fondateur §3.2 de la roadmap — rien n'est
+  publié par défaut.
+- **Où elle vit** : le champ de visibilité (cf. Charte Produit §9, graine
+  préparée) est initialisé à "privé" par défaut pour tout nouveau produit, sans
+  exception.
+- **Comment elle est protégée** : test vérifiant que tout produit nouvellement
+  créé a pour visibilité par défaut "privé".
+
+### E3. La disponibilité publiée possède toujours une date de fraîcheur
+- **Pourquoi** : présenter une disponibilité ancienne comme une certitude est
+  trompeur pour le client final (cf. §9.4 roadmap).
+- **Où elle vit** : tout enregistrement de disponibilité publiée porte un
+  horodatage de dernière mise à jour, affiché sans exception.
+- **Comment elle est protégée** : test vérifiant qu'aucune disponibilité
+  publiée ne peut exister sans horodatage associé.
+
+*(Note : E1–E3 sont des invariants "dormants" pour la Phase 1 de GAMAD POS —
+le champ existe mais la fonctionnalité de publication n'est pas activée. Ils
+sont catalogués maintenant pour ne pas être improvisés au moment de l'activation,
+conformément au principe des "petites graines", §10 document de passation.)*
+
+---
+
+## F. Abonnement et paiement du service
+
+### F1. L'abonnement GAMAD POS est indépendant du fournisseur de paiement
+- **Pourquoi** : garantit que le prestataire de paiement (ex. Genius Pay ou
+  équivalent) reste remplaçable sans réécrire la logique métier (§3.5 roadmap).
+- **Où elle vit** : le domaine métier ne manipule que les concepts "abonnement"
+  et "paiement d'abonnement" ; le nom du prestataire n'apparaît dans aucune
+  règle métier, seulement dans la couche d'intégration.
+- **Comment elle est protégée** : test vérifiant qu'aucun service métier ne
+  référence directement un prestataire nommé.
+
+### F2. Une suspension d'abonnement ne détruit jamais de données
+- **Pourquoi** : c'est un engagement explicite de la roadmap (§7.3) — la
+  confiance du commerçant dépend de cette garantie.
+- **Où elle vit** : le statut "suspendu" restreint les opérations (lecture
+  seule, export possible) sans jamais déclencher de suppression.
+- **Comment elle est protégée** : test vérifiant qu'aucune donnée n'est
+  supprimée lors du passage au statut "suspendu", sur un jeu de données
+  représentatif de l'état "avant" (cf. §8 document de passation).
+
+---
+
+## G. Contrôle d'accès
+
+### G1. Toute permission se vérifie à deux niveaux : navigation et moteur
+- **Pourquoi** : masquer un lien dans l'interface ne protège rien si l'action
+  reste accessible directement (invariant §9 document de passation).
+- **Où elle vit** : chaque action sensible du moteur porte sa propre
+  vérification de permission, indépendante de ce que l'interface affiche.
+- **Comment elle est protégée** : test appelant directement chaque action
+  sensible avec un rôle non autorisé, sans passer par l'interface, et vérifiant
+  le refus.
+
+---
+
+## H. Clôture
+
+### H1. Une clôture validée ne peut pas être rouverte silencieusement
+- **Pourquoi** : symétrique de B1 — c'est la garantie que les chiffres du jour,
+  une fois arrêtés, restent une référence stable.
+- **Où elle vit** : le statut "clôturée" interdit toute nouvelle opération
+  rattachée à la période sans passer par une réouverture explicite et tracée
+  (avec motif et autorisation).
+- **Comment elle est protégée** : test vérifiant le rejet de toute vente ou
+  encaissement rattaché à une période déjà clôturée, sauf réouverture explicite.
+
+### H2. Un écart de clôture est constaté, jamais corrigé sans trace
+- **Pourquoi** : un écart "corrigé" silencieusement masque soit une erreur de
+  saisie récurrente, soit un vol non détecté.
+- **Où elle vit** : tout écart est enregistré comme tel, avec sa valeur, avant
+  toute action corrective ultérieure (qui est un mouvement séparé).
+- **Comment elle est protégée** : test vérifiant qu'un écart non nul est
+  toujours conservé dans l'historique de la clôture, même après une correction
+  postérieure.
+
+---
+
+## Invariants encore à confirmer (zone grise assumée)
+
+Conformément au principe "les invariants se découvrent, ils ne se décrètent pas
+à l'avance" (§6 document de passation), les points suivants sont identifiés
+comme probables mais pas encore formulés en règle définitive — ils dépendent des
+décisions encore ouvertes dans la Matrice des rôles :
+
+- Le comportement exact attendu quand une annulation de vente intervient après
+  qu'une partie du stock associé a déjà été transférée vers un autre point de
+  vente.
+- La règle de priorité quand un versement sur créance et une correction de stock
+  liée à un retour surviennent dans la même fenêtre de clôture.
+
+Ces cas ne doivent pas recevoir de comportement par défaut improvisé dans le
+code : ils doivent remonter ici, être tranchés explicitement, puis migrer dans
+les sections A–H ci-dessus avec leur test associé.
+
+---
+
+*Dernière révision : version de naissance, avant toute implémentation. Ce
+catalogue doit être mis à jour à chaque bug métier repéré en marchant, chaque
+fois par les trois mêmes étapes : nommer la règle, situer où elle vit dans le
+moteur, écrire le test qui la protège.*
