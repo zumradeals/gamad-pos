@@ -1,0 +1,237 @@
+# Glossaire Métier — GAMAD POS
+
+*Phase 0 — Livrable 2/4. Document vivant : révisé à chaque découverte, jamais figé
+une fois pour toutes (cf. Charte Produit §6, document de passation §6).*
+
+Chaque terme ci-dessous a une définition unique et contraignante. Aucun écran,
+aucun document, aucun message envoyé à un agent ne doit employer ces mots dans un
+sens différent de celui fixé ici. En cas de doute sur un terme en cours de
+conception, on l'ajoute ici avant de continuer à l'utiliser — on ne le laisse
+jamais flotter dans un sens implicite.
+
+---
+
+## 1. Transaction commerciale
+
+### Vente
+Opération par laquelle un ou plusieurs produits (ou variantes) sont cédés à un
+client contre une contrepartie, immédiate ou différée. Une vente est composée
+d'une ou plusieurs **lignes de vente**, chacune liée à un produit, une quantité
+et un prix unitaire au moment de la vente.
+
+Une vente **validée** est un fait accompli : elle ne peut pas être supprimée
+silencieusement (cf. invariant §21 roadmap). Elle ne peut être défaite que par
+une **annulation** ou un **retour**, tous deux tracés.
+
+### Devis
+Proposition de vente non engageante, sans effet sur le stock ni sur la caisse.
+Un devis peut être transformé en commande ou en vente ; il ne modifie rien tant
+qu'il n'est pas accepté.
+
+### Commande
+Engagement du client sur une vente à réaliser, avant livraison ou paiement
+complet. Une commande peut comporter un acompte, une réservation de stock, et
+donne lieu à une ou plusieurs livraisons (immédiates ou différées) et à un ou
+plusieurs paiements.
+
+### Facture
+Document juridique et comptable formalisant une vente (montant dû, produits,
+quantités, prix). **Une facture, une vente et un paiement ne sont pas la même
+chose** (invariant explicite, §21 roadmap) : une vente peut exister sans facture
+émise ; une facture peut rester impayée ; un paiement peut couvrir plusieurs
+factures ou une seule partiellement.
+
+### Ticket / reçu
+Preuve remise au client. Le **ticket** atteste d'une vente au comptant ; le
+**reçu d'acompte** atteste d'un versement partiel ; le **reçu de créance**
+atteste d'un versement sur une dette existante. Ce ne sont pas des synonymes
+interchangeables.
+
+---
+
+## 2. Paiement et encaissement
+
+### Paiement
+Tout versement effectué par le client, quel que soit le mode (espèces, Mobile
+Money, virement, chèque, crédit, mixte). Un paiement est **rattaché** à une
+vente ou à une créance — jamais flottant.
+
+### Encaissement
+Constat, côté commerce, qu'un paiement a effectivement été reçu et enregistré
+dans la caisse ou le compte du point de vente. L'encaissement est ce qui alimente
+la **clôture** ; le paiement est ce que le client a fait, l'encaissement est ce
+que le commerce a constaté et enregistré.
+
+### Acompte
+Paiement partiel effectué avant la livraison ou la finalisation d'une commande,
+qui réduit le montant restant dû sans éteindre la créance.
+
+### Paiement partiel
+Paiement inférieur au montant total dû sur une vente déjà validée. Le solde
+devient — ou reste — une créance.
+
+### Paiement mixte
+Règlement d'une même vente par plusieurs modes de paiement simultanément
+(ex. espèces + Mobile Money).
+
+### Monnaie rendue
+Différence positive entre le montant remis par le client et le montant dû,
+restituée au client. Elle n'est ni un encaissement ni une dépense.
+
+---
+
+## 3. Créance
+
+### Créance
+Somme due par un client identifié à la suite d'une vente non intégralement
+payée. **Une créance exige toujours un débiteur identifiable** (invariant §21
+roadmap) — il ne peut jamais exister de créance anonyme.
+
+### Versement (sur créance)
+Paiement partiel effectué après coup par le client pour réduire une créance déjà
+existante. À distinguer d'un acompte, qui précède la vente ou la livraison.
+
+### Reste dû
+Montant de la créance non encore couvert par des versements, à un instant donné.
+
+### Échéance
+Date à laquelle le solde de la créance est attendu. Une échéance dépassée ne
+supprime jamais la créance ; elle change son statut.
+
+---
+
+## 4. Stock
+
+### Stock disponible
+Quantité d'un produit, à un emplacement donné, effectivement libre à la vente —
+c'est-à-dire hors réservations et hors quantités en transit non réceptionnées.
+
+### Stock réservé
+Quantité affectée à une commande ou une vente en cours (ex. acompte versé,
+livraison différée), non disponible à la vente pour un autre client, mais non
+encore sortie physiquement.
+
+### Stock livré
+Quantité effectivement remise au client. Une fois livré, le stock n'est plus
+comptabilisé dans aucune des autres catégories.
+
+### Stock en transit
+Quantité déjà sortie d'un emplacement (ex. transfert entre points de vente ou
+dépôts) mais pas encore réceptionnée à sa destination. Un stock en transit n'est
+ni disponible, ni réservé, ni livré : il est temporairement hors de tout
+emplacement fiable.
+
+### Mouvement (de stock)
+Tout événement modifiant une quantité de stock (réception, sortie, transfert,
+correction, inventaire). **Toute modification de stock génère un mouvement
+traçable** (invariant §21 roadmap) — aucune quantité ne change sans mouvement
+associé.
+
+### Correction
+Mouvement de stock effectué pour aligner la quantité théorique sur une quantité
+réellement constatée (casse, erreur de saisie, vol). Une correction nécessite
+toujours une autorisation explicite, jamais implicite.
+
+### Inventaire
+Opération de comptage exhaustif ou partiel du stock réel, dont l'écart avec le
+stock théorique donne lieu à des corrections.
+
+### Seuil d'alerte
+Quantité en dessous de laquelle un produit est signalé comme proche de la
+rupture. Ce n'est pas une rupture constatée, seulement un avertissement.
+
+---
+
+## 5. Livraison
+
+### Livraison
+Remise physique de marchandise au client, immédiate ou différée. **Une
+livraison différée exige un client retrouvable** (invariant §21 roadmap) : elle
+ne peut jamais être créée pour un client anonyme.
+
+### Livraison immédiate
+Livraison effectuée au moment même de la vente, sans délai ni suivi ultérieur.
+
+### Livraison différée
+Livraison prévue à une date ou un lieu postérieur à la vente, nécessitant un
+suivi (statut, responsable, preuve).
+
+### Livraison partielle
+Livraison ne couvrant qu'une partie de la quantité vendue ou commandée. Le
+reliquat reste comme **reste à livrer**.
+
+### Reste à livrer
+Quantité vendue ou commandée mais non encore remise au client.
+
+### Preuve de livraison
+Élément (signature, photo, confirmation) attestant qu'une livraison a été
+effectuée, rattaché à la livraison concernée.
+
+---
+
+## 6. Remise, annulation, retour
+
+### Remise
+Réduction du prix normal d'une vente ou d'une ligne de vente, accordée avant
+validation. **Une remise exceptionnelle exige un motif et éventuellement une
+autorisation** (invariant §21 roadmap) — une remise significative ne peut jamais
+être appliquée silencieusement.
+
+### Annulation
+Action d'invalider une vente, une commande ou une ligne, avant ou après
+validation, avec restitution du stock concerné. Une annulation est un événement
+tracé, jamais une suppression : la vente annulée reste visible dans l'historique
+avec son nouveau statut.
+
+### Retour
+Restitution par le client d'un produit déjà livré et payé, postérieure à la
+vente. Un retour donne lieu à un mouvement de stock (réception) et, le cas
+échéant, à un remboursement.
+
+### Remboursement
+Restitution au client d'une somme déjà encaissée, généralement consécutive à un
+retour ou à une annulation après paiement.
+
+---
+
+## 7. Clôture et point de vente
+
+### Clôture
+Arrêt formel des comptes d'un point de vente sur une période (généralement la
+journée), rapprochant ventes du jour, espèces attendues, espèces comptées,
+Mobile Money enregistré, paiements à crédit et dépenses, avec validation du
+responsable. Une clôture ne peut pas être rouverte silencieusement.
+
+### Écart (de clôture)
+Différence entre le montant théorique attendu et le montant réellement compté à
+la clôture. Un écart est constaté et tracé, jamais corrigé sans trace.
+
+### Point de vente
+Lieu physique ou virtuel où une vente peut être réalisée, rattaché à une
+entreprise, disposant de son propre stock, sa propre caisse et ses propres
+clôtures. Un point de vente n'est pas un dépôt : un dépôt peut exister sans
+vendre directement.
+
+### Dépôt
+Emplacement de stockage, pouvant être rattaché à un ou plusieurs points de
+vente, sans nécessairement réaliser de ventes lui-même.
+
+---
+
+## 8. Dette fournisseur (distinction avec créance client)
+
+### Dette fournisseur
+Somme due par le commerce à un fournisseur, symétrique de la créance client
+mais dans l'autre sens. Ne jamais confondre avec **créance**, qui désigne
+exclusivement une somme due *au* commerce *par* un client.
+
+---
+
+## Notes d'usage
+
+- Ce glossaire prime sur toute appellation utilisée dans un écran ou une
+  maquette. En cas de conflit entre le nom affiché à l'utilisateur (qui peut
+  être simplifié pour l'accessibilité, cf. persona-limite) et le terme du
+  glossaire, c'est le terme du glossaire qui fait foi dans le moteur métier.
+- Tout nouveau terme rencontré en cours de conception doit être ajouté ici avant
+  d'être utilisé ailleurs — jamais après coup.
