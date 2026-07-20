@@ -4,6 +4,8 @@ use App\Http\Controllers\Appareils\AppareilMemoriseController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\PointsDeVente\SelectionController;
+use App\Http\Controllers\Produits\ProduitController;
+use App\Http\Controllers\Ventes\VenteController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -25,4 +27,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/appareils', [AppareilMemoriseController::class, 'index'])->name('appareils.index');
     Route::delete('/appareils/{appareil}', [AppareilMemoriseController::class, 'destroy'])->name('appareils.destroy');
+
+    Route::post('/produits', [ProduitController::class, 'store'])->name('produits.store');
+
+    Route::get('/ventes', [VenteController::class, 'create'])->name('ventes.create');
+    Route::post('/ventes', [VenteController::class, 'store'])->name('ventes.store');
 });
