@@ -3,6 +3,7 @@
 use App\Http\Controllers\Appareils\AppareilMemoriseController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
+use App\Http\Controllers\Creances\VersementController;
 use App\Http\Controllers\PointsDeVente\SelectionController;
 use App\Http\Controllers\Produits\ProduitController;
 use App\Http\Controllers\Ventes\VenteController;
@@ -32,4 +33,6 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/ventes', [VenteController::class, 'create'])->name('ventes.create');
     Route::post('/ventes', [VenteController::class, 'store'])->name('ventes.store');
+
+    Route::post('/creances/{creance}/versements', [VersementController::class, 'store'])->name('creances.versements.store');
 });

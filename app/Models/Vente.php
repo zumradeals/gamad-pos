@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 #[Fillable(['point_de_vente_id', 'user_id', 'statut', 'montant_total'])]
@@ -61,5 +62,13 @@ class Vente extends Model
     public function mouvementsStock(): MorphMany
     {
         return $this->morphMany(MouvementStock::class, 'origine');
+    }
+
+    /**
+     * @return HasOne<Creance, $this>
+     */
+    public function creance(): HasOne
+    {
+        return $this->hasOne(Creance::class);
     }
 }

@@ -39,6 +39,8 @@ class VenteController extends Controller
             'produit_id' => ['required', 'integer'],
             'quantite' => ['required', 'numeric', 'min:0.001'],
             'montant_paye' => ['required', 'numeric', 'min:0'],
+            'client_nom' => ['nullable', 'string', 'max:255'],
+            'client_telephone' => ['nullable', 'string', 'max:50'],
         ]);
 
         $pointDeVenteId = $request->session()->get('point_de_vente_id');
@@ -48,12 +50,17 @@ class VenteController extends Controller
         $pointDeVente = PointDeVente::findOrFail((int) $pointDeVenteId);
         $produit = Produit::where('point_de_vente_id', $pointDeVenteId)->findOrFail((int) $data['produit_id']);
 
-        $ventes->enregistrerVenteComptant(
+        $client = filled($data['client_nom'] ?? null)
+            ? ['nom' => $data['client_nom'], 'telephone' => $data['client_telephone'] ?? null]
+            : null;
+
+        $ventes->enregistrerVente(
             vendeur: $request->user(),
             pointDeVente: $pointDeVente,
             produit: $produit,
             quantite: (float) $data['quantite'],
             montantPaye: (float) $data['montant_paye'],
+            client: $client,
         );
 
         return redirect()->route('ventes.create');

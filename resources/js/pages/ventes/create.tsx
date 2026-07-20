@@ -12,10 +12,14 @@ type Produit = {
 export default function VenteCreate({ produits }: { produits: Produit[] }) {
     const [produit, setProduit] = useState<Produit | null>(null);
     const [confirme, setConfirme] = useState(false);
+    const [paiementPartiel, setPaiementPartiel] = useState(false);
 
     const { data, setData, post, processing, errors, transform, reset } = useForm({
         produit_id: '',
         quantite: '1',
+        montant_paye: '',
+        client_nom: '',
+        client_telephone: '',
     });
 
     const total = useMemo(() => {
@@ -26,12 +30,15 @@ export default function VenteCreate({ produits }: { produits: Produit[] }) {
 
     transform((formData) => ({
         ...formData,
-        montant_paye: total,
+        montant_paye: paiementPartiel ? formData.montant_paye : total,
+        client_nom: paiementPartiel ? formData.client_nom : '',
+        client_telephone: paiementPartiel ? formData.client_telephone : '',
     }));
 
     const choisirProduit = (p: Produit) => {
         setConfirme(false);
         setProduit(p);
+        setPaiementPartiel(false);
         setData('produit_id', String(p.id));
     };
 
@@ -41,10 +48,13 @@ export default function VenteCreate({ produits }: { produits: Produit[] }) {
             onSuccess: () => {
                 setProduit(null);
                 setConfirme(true);
+                setPaiementPartiel(false);
                 reset();
             },
         });
     };
+
+    const fieldErrors = errors as Record<string, string>;
 
     return (
         <>
@@ -89,12 +99,57 @@ export default function VenteCreate({ produits }: { produits: Produit[] }) {
                         </div>
 
                         <p className="text-lg font-medium">Total : {total}</p>
-                        {(errors as Record<string, string>).montant_paye && (
-                            <p className="text-sm text-red-600">{(errors as Record<string, string>).montant_paye}</p>
+
+                        <label className="flex items-center gap-2 text-sm">
+                            <input type="checkbox" checked={paiementPartiel} onChange={(e) => setPaiementPartiel(e.target.checked)} />
+                            Le client ne paie pas tout aujourd'hui
+                        </label>
+
+                        {paiementPartiel && (
+                            <>
+                                <div className="flex flex-col gap-1">
+                                    <label htmlFor="montant_paye">Montant reçu aujourd'hui</label>
+                                    <input
+                                        id="montant_paye"
+                                        type="number"
+                                        min="0"
+                                        step="any"
+                                        inputMode="decimal"
+                                        value={data.montant_paye}
+                                        onChange={(e) => setData('montant_paye', e.target.value)}
+                                        className="border p-2"
+                                    />
+                                    {fieldErrors.montant_paye && <p className="text-sm text-red-600">{fieldErrors.montant_paye}</p>}
+                                </div>
+
+                                <div className="flex flex-col gap-1">
+                                    <label htmlFor="client_nom">Nom du client</label>
+                                    <input
+                                        id="client_nom"
+                                        type="text"
+                                        value={data.client_nom}
+                                        onChange={(e) => setData('client_nom', e.target.value)}
+                                        className="border p-2"
+                                    />
+                                    {fieldErrors.client_nom && <p className="text-sm text-red-600">{fieldErrors.client_nom}</p>}
+                                    {fieldErrors.client && <p className="text-sm text-red-600">{fieldErrors.client}</p>}
+                                </div>
+
+                                <div className="flex flex-col gap-1">
+                                    <label htmlFor="client_telephone">Téléphone du client (optionnel)</label>
+                                    <input
+                                        id="client_telephone"
+                                        type="text"
+                                        value={data.client_telephone}
+                                        onChange={(e) => setData('client_telephone', e.target.value)}
+                                        className="border p-2"
+                                    />
+                                </div>
+                            </>
                         )}
 
                         <button type="submit" disabled={processing} className="bg-black px-4 py-2 text-white dark:bg-white dark:text-black">
-                            Encaisser en espèces
+                            {paiementPartiel ? 'Encaisser et enregistrer la dette' : 'Encaisser en espèces'}
                         </button>
 
                         <button type="button" onClick={() => setProduit(null)} className="border px-4 py-2">

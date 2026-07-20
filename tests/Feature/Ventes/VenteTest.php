@@ -97,7 +97,7 @@ class VenteTest extends TestCase
         $this->assertDatabaseHas('ventes', ['id' => $vente->id]);
     }
 
-    public function test_a_payment_lower_than_the_total_amount_is_rejected_without_creating_a_debt(): void
+    public function test_a_payment_lower_than_the_total_amount_without_a_client_is_rejected(): void
     {
         $produit = $this->creerProduitAvecStock('Huile', 2000, 10);
 
@@ -105,7 +105,7 @@ class VenteTest extends TestCase
             'produit_id' => $produit->id,
             'quantite' => 2,
             'montant_paye' => 3000,
-        ])->assertSessionHasErrors('montant_paye');
+        ])->assertSessionHasErrors('client');
 
         $this->assertDatabaseMissing('ventes', ['point_de_vente_id' => $this->pointDeVente->id]);
         $this->assertSame(10.0, $produit->fresh()->stockDisponible());
