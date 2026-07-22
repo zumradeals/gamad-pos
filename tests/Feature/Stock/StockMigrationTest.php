@@ -49,7 +49,20 @@ class StockMigrationTest extends TestCase
      */
     public function test_a_produit_created_before_this_chantier_keeps_an_identical_stock_in_its_origin_point_de_vente_after_migrating(): void
     {
-        Artisan::call('migrate:rollback', ['--step' => 2]);
+        // Roll back everything from (and including) the produits
+        // entreprise_id migration onward, however many migrations that now
+        // is — later chantiers keep adding migration files after it, so the
+        // step count is derived from the migrations directory rather than
+        // hardcoded.
+        $migrations = collect(glob(database_path('migrations/*.php')))
+            ->map(fn (string $path) => basename($path, '.php'))
+            ->sort()
+            ->values();
+
+        $depart = $migrations->search(fn (string $nom) => str_starts_with($nom, '2026_07_22_100005'));
+        $step = $migrations->count() - $depart;
+
+        Artisan::call('migrate:rollback', ['--step' => $step]);
 
         $this->assertTrue(Schema::hasColumn('produits', 'point_de_vente_id'));
         $this->assertFalse(Schema::hasColumn('produits', 'entreprise_id'));

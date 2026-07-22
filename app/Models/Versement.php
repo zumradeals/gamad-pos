@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['creance_id', 'montant', 'mode'])]
+#[Fillable(['creance_id', 'cloture_id', 'montant', 'mode'])]
 class Versement extends Model
 {
     use HasFactory;
@@ -27,5 +27,13 @@ class Versement extends Model
     public function creance(): BelongsTo
     {
         return $this->belongsTo(Creance::class);
+    }
+
+    /**
+     * @return BelongsTo<Cloture, $this>
+     */
+    public function cloture(): BelongsTo
+    {
+        return $this->belongsTo(Cloture::class);
     }
 }

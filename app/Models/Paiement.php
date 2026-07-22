@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['vente_id', 'montant', 'mode'])]
+#[Fillable(['vente_id', 'cloture_id', 'montant', 'mode'])]
 class Paiement extends Model
 {
     use HasFactory;
@@ -27,5 +27,13 @@ class Paiement extends Model
     public function vente(): BelongsTo
     {
         return $this->belongsTo(Vente::class);
+    }
+
+    /**
+     * @return BelongsTo<Cloture, $this>
+     */
+    public function cloture(): BelongsTo
+    {
+        return $this->belongsTo(Cloture::class);
     }
 }
