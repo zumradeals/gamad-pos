@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['client_id', 'vente_id', 'montant_initial', 'echeance', 'statut'])]
+#[Fillable(['client_id', 'vente_id', 'commande_id', 'montant_initial', 'echeance', 'statut'])]
 class Creance extends Model
 {
     use HasFactory;
@@ -39,6 +39,17 @@ class Creance extends Model
     public function vente(): BelongsTo
     {
         return $this->belongsTo(Vente::class);
+    }
+
+    /**
+     * Une créance née d'un acompte de commande partiel (Chantier 14) plutôt
+     * que d'une vente — jamais les deux à la fois.
+     *
+     * @return BelongsTo<Commande, $this>
+     */
+    public function commande(): BelongsTo
+    {
+        return $this->belongsTo(Commande::class);
     }
 
     /**

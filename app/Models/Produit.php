@@ -39,10 +39,12 @@ class Produit extends Model
 
     /**
      * Stock disponible à un emplacement donné (point de vente ou dépôt) :
-     * réceptions, entrées de transfert réceptionnées et corrections moins
-     * sorties de vente et sorties de transfert, à cet emplacement précis.
-     * Un stock en transit (transfert non encore réceptionné) ne compte nulle
-     * part tant qu'il n'a pas été confirmé à destination.
+     * réceptions, entrées de transfert réceptionnées, corrections et
+     * libérations de réservation, moins sorties de vente, sorties de
+     * transfert et réservations actives, à cet emplacement précis. Un stock
+     * en transit (transfert non encore réceptionné) ou réservé (commande non
+     * encore livrée ni annulée) ne compte nulle part tant qu'il n'a pas été
+     * confirmé à destination ou libéré (invariant A3 du Catalogue).
      */
     public function stockDisponible(Model $emplacement): float
     {
@@ -55,17 +57,18 @@ class Produit extends Model
             })
             ->selectRaw(
                 'SUM(CASE
-                    WHEN type IN (?, ?) THEN quantite
-                    WHEN type = ? THEN quantite
-                    WHEN type IN (?, ?) THEN -quantite
+                    WHEN type IN (?, ?, ?, ?) THEN quantite
+                    WHEN type IN (?, ?, ?) THEN -quantite
                     ELSE 0
                 END) AS total',
                 [
                     MouvementStock::TYPE_RECEPTION,
                     MouvementStock::TYPE_TRANSFERT_ENTREE,
                     MouvementStock::TYPE_CORRECTION,
+                    MouvementStock::TYPE_LIBERATION_RESERVATION,
                     MouvementStock::TYPE_SORTIE_VENTE,
                     MouvementStock::TYPE_TRANSFERT_SORTIE,
+                    MouvementStock::TYPE_RESERVATION,
                 ]
             )
             ->value('total');

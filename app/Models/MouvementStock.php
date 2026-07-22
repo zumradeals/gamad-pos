@@ -25,6 +25,10 @@ class MouvementStock extends Model
 
     public const TYPE_TRANSFERT_ENTREE = 'transfert_entree';
 
+    public const TYPE_RESERVATION = 'reservation';
+
+    public const TYPE_LIBERATION_RESERVATION = 'liberation_reservation';
+
     protected function casts(): array
     {
         return [
