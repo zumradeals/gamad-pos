@@ -9,7 +9,7 @@ type Produit = {
     stock_disponible: number;
 };
 
-export default function VenteCreate({ produits }: { produits: Produit[] }) {
+export default function VenteCreate({ produits, abonnementSuspendu }: { produits: Produit[]; abonnementSuspendu: boolean }) {
     const [produit, setProduit] = useState<Produit | null>(null);
     const [confirme, setConfirme] = useState(false);
     const [paiementPartiel, setPaiementPartiel] = useState(false);
@@ -72,6 +72,12 @@ export default function VenteCreate({ produits }: { produits: Produit[] }) {
                 <h1 className="mb-4 text-xl font-medium">Vendre</h1>
 
                 {confirme && <p className="mb-4 border border-green-600 p-3 text-green-700">Vente enregistrée.</p>}
+
+                {abonnementSuspendu && (
+                    <p className="mb-4 border border-red-600 p-3 text-red-700">
+                        Abonnement suspendu : renouvelez-le pour reprendre les ventes.
+                    </p>
+                )}
 
                 {!produit && (
                     <ul className="flex flex-col gap-2">
@@ -191,9 +197,11 @@ export default function VenteCreate({ produits }: { produits: Produit[] }) {
                             </>
                         )}
 
-                        <button type="submit" disabled={processing} className="bg-black px-4 py-2 text-white dark:bg-white dark:text-black">
-                            {paiementPartiel ? 'Encaisser et enregistrer la dette' : 'Encaisser en espèces'}
-                        </button>
+                        {!abonnementSuspendu && (
+                            <button type="submit" disabled={processing} className="bg-black px-4 py-2 text-white dark:bg-white dark:text-black">
+                                {paiementPartiel ? 'Encaisser et enregistrer la dette' : 'Encaisser en espèces'}
+                            </button>
+                        )}
 
                         <button type="button" onClick={() => setProduit(null)} className="border px-4 py-2">
                             Annuler

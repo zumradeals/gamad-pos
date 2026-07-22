@@ -17,6 +17,12 @@ class Abonnement extends Model
 
     public const STATUT_EXPIRE = 'expire';
 
+    /**
+     * Durée de grâce après l'échéance, durant laquelle l'accès reste
+     * complet (proposition documentée, Chantier 9).
+     */
+    public const JOURS_GRACE = 7;
+
     protected function casts(): array
     {
         return [
@@ -55,5 +61,34 @@ class Abonnement extends Model
     public function paiements(): HasMany
     {
         return $this->hasMany(PaiementAbonnement::class);
+    }
+
+    /**
+     * Statut d'accès (à jour / en grâce / suspendu) : jamais stocké, jamais
+     * mis à jour par une tâche planifiée — calculé à la volée à partir de
+     * date_echeance et de JOURS_GRACE, exactement comme stockDisponible()
+     * ou resteDu() avant lui. Un renouvellement (qui avance date_echeance)
+     * lève donc la suspension immédiatement, sans aucun champ à
+     * réinitialiser.
+     */
+    public function estEnGrace(): bool
+    {
+        return now()->greaterThan($this->finPeriodeValidite())
+            && now()->lessThanOrEqualTo($this->finPeriodeGrace());
+    }
+
+    public function estSuspendu(): bool
+    {
+        return now()->greaterThan($this->finPeriodeGrace());
+    }
+
+    private function finPeriodeValidite(): \Carbon\CarbonInterface
+    {
+        return $this->date_echeance->endOfDay();
+    }
+
+    private function finPeriodeGrace(): \Carbon\CarbonInterface
+    {
+        return $this->finPeriodeValidite()->addDays(self::JOURS_GRACE);
     }
 }

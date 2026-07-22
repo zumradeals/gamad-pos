@@ -34,6 +34,7 @@ class VenteController extends Controller
 
         return Inertia::render('ventes/create', [
             'produits' => $produits,
+            'abonnementSuspendu' => $pointDeVente->entreprise->estSuspendue(),
         ]);
     }
 

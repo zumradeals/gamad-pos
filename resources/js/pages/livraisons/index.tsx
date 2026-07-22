@@ -20,10 +20,12 @@ export default function LivraisonsIndex({
     livraisons,
     livreurs,
     peutAssigner,
+    abonnementSuspendu,
 }: {
     livraisons: Livraison[];
     livreurs: Livreur[];
     peutAssigner: boolean;
+    abonnementSuspendu: boolean;
 }) {
     const [enCours, setEnCours] = useState<number | null>(null);
 
@@ -53,6 +55,13 @@ export default function LivraisonsIndex({
             <Head title="Livraisons" />
             <div className="min-h-screen bg-white p-8 text-black dark:bg-black dark:text-white">
                 <h1 className="mb-4 text-xl font-medium">Livraisons</h1>
+
+                {abonnementSuspendu && (
+                    <p className="mb-4 border border-red-600 p-3 text-red-700">
+                        Abonnement suspendu : renouvelez-le pour reprendre les livraisons.
+                    </p>
+                )}
+
                 <ul className="flex flex-col gap-2">
                     {livraisons.map((livraison) => (
                         <li key={livraison.id} className="flex flex-col gap-2 border p-3">
@@ -81,7 +90,8 @@ export default function LivraisonsIndex({
                                 </label>
                             )}
 
-                            {livraison.statut !== 'livree' &&
+                            {!abonnementSuspendu &&
+                                livraison.statut !== 'livree' &&
                                 (enCours === livraison.id ? (
                                     <form onSubmit={submit} className="flex items-center gap-2">
                                         <input

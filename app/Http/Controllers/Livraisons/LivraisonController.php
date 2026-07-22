@@ -44,6 +44,7 @@ class LivraisonController extends Controller
                     ->get(['id', 'name'])
                 : [],
             'peutAssigner' => $estProprietaire,
+            'abonnementSuspendu' => $user->entreprise?->estSuspendue() ?? false,
         ]);
     }
 

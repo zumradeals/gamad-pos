@@ -4,11 +4,14 @@ use App\Http\Controllers\Abonnements\AbonnementController;
 use App\Http\Controllers\Appareils\AppareilMemoriseController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
+use App\Http\Controllers\Clotures\ClotureController;
 use App\Http\Controllers\Creances\VersementController;
+use App\Http\Controllers\Export\ExportController;
 use App\Http\Controllers\Livraisons\LigneLivraisonController;
 use App\Http\Controllers\Livraisons\LivraisonController;
 use App\Http\Controllers\PointsDeVente\SelectionController;
 use App\Http\Controllers\Produits\ProduitController;
+use App\Http\Controllers\Stock\CorrectionStockController;
 use App\Http\Controllers\Ventes\VenteController;
 use Illuminate\Support\Facades\Route;
 
@@ -35,13 +38,29 @@ Route::middleware('auth')->group(function () {
     Route::post('/produits', [ProduitController::class, 'store'])->name('produits.store');
 
     Route::get('/ventes', [VenteController::class, 'create'])->name('ventes.create');
-    Route::post('/ventes', [VenteController::class, 'store'])->name('ventes.store');
+    Route::post('/ventes', [VenteController::class, 'store'])
+        ->middleware('abonnement.actif')
+        ->name('ventes.store');
 
-    Route::post('/creances/{creance}/versements', [VersementController::class, 'store'])->name('creances.versements.store');
+    Route::post('/creances/{creance}/versements', [VersementController::class, 'store'])
+        ->middleware('abonnement.actif')
+        ->name('creances.versements.store');
 
     Route::get('/livraisons', [LivraisonController::class, 'index'])->name('livraisons.index');
     Route::patch('/livraisons/{livraison}/responsable', [LivraisonController::class, 'assignerResponsable'])->name('livraisons.responsable.update');
-    Route::post('/livraisons/{livraison}/lignes', [LigneLivraisonController::class, 'store'])->name('livraisons.lignes.store');
+    Route::post('/livraisons/{livraison}/lignes', [LigneLivraisonController::class, 'store'])
+        ->middleware('abonnement.actif')
+        ->name('livraisons.lignes.store');
+
+    Route::post('/corrections-stock', [CorrectionStockController::class, 'store'])
+        ->middleware('abonnement.actif')
+        ->name('corrections-stock.store');
+
+    Route::post('/clotures/{cloture}/valider', [ClotureController::class, 'valider'])
+        ->middleware('abonnement.actif')
+        ->name('clotures.valider');
 
     Route::post('/abonnements/activer', [AbonnementController::class, 'activer'])->name('abonnements.activer');
+
+    Route::get('/export', [ExportController::class, 'index'])->name('export.index');
 });
