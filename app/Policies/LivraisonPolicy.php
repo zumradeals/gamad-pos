@@ -23,4 +23,15 @@ class LivraisonPolicy
             && $user->entreprise_id !== null
             && $user->entreprise_id === $livraison->vente->pointDeVente->entreprise_id;
     }
+
+    /**
+     * Only a Propriétaire of the entreprise the livraison belongs to may
+     * designate which Livreur is responsable for it.
+     */
+    public function assigner(User $user, Livraison $livraison): bool
+    {
+        return $user->role === RoleEnum::Proprietaire
+            && $user->entreprise_id !== null
+            && $user->entreprise_id === $livraison->vente->pointDeVente->entreprise_id;
+    }
 }

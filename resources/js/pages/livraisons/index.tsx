@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { type FormEventHandler, useState } from 'react';
 
 type Livraison = {
@@ -7,10 +7,30 @@ type Livraison = {
     statut: string;
     client: string;
     reste_a_livrer: number;
+    responsable_id: number | null;
+    responsable_nom: string | null;
 };
 
-export default function LivraisonsIndex({ livraisons }: { livraisons: Livraison[] }) {
+type Livreur = {
+    id: number;
+    name: string;
+};
+
+export default function LivraisonsIndex({
+    livraisons,
+    livreurs,
+    peutAssigner,
+}: {
+    livraisons: Livraison[];
+    livreurs: Livreur[];
+    peutAssigner: boolean;
+}) {
     const [enCours, setEnCours] = useState<number | null>(null);
+
+    const assignerResponsable = (livraisonId: number, responsableUserId: string) => {
+        if (!responsableUserId) return;
+        router.patch(`/livraisons/${livraisonId}/responsable`, { responsable_user_id: responsableUserId });
+    };
 
     const { data, setData, post, processing, errors, reset } = useForm({
         quantite: '',
@@ -38,7 +58,28 @@ export default function LivraisonsIndex({ livraisons }: { livraisons: Livraison[
                         <li key={livraison.id} className="flex flex-col gap-2 border p-3">
                             <span>
                                 {livraison.client} — {livraison.lieu} ({livraison.statut}) — reste à livrer : {livraison.reste_a_livrer}
+                                {livraison.responsable_nom ? ` — responsable : ${livraison.responsable_nom}` : ''}
                             </span>
+
+                            {peutAssigner && livraison.statut !== 'livree' && (
+                                <label className="flex items-center gap-2 text-sm">
+                                    Responsable :
+                                    <select
+                                        value={livraison.responsable_id ?? ''}
+                                        onChange={(e) => assignerResponsable(livraison.id, e.target.value)}
+                                        className="border p-1"
+                                    >
+                                        <option value="" disabled>
+                                            Choisir un livreur
+                                        </option>
+                                        {livreurs.map((livreur) => (
+                                            <option key={livreur.id} value={livreur.id}>
+                                                {livreur.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            )}
 
                             {livraison.statut !== 'livree' &&
                                 (enCours === livraison.id ? (

@@ -11,6 +11,7 @@ use App\Models\Produit;
 use App\Models\User;
 use App\Models\Vente;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class LivraisonTest extends TestCase
@@ -189,5 +190,81 @@ class LivraisonTest extends TestCase
         $this->assertDatabaseHas('creances', ['vente_id' => $vente->id]);
         $this->assertDatabaseCount('livraisons', 0);
         $this->assertSame(Creance::STATUT_OUVERTE, Creance::firstOrFail()->statut);
+    }
+
+    public function test_a_proprietaire_can_assign_a_responsable_livreur_who_then_sees_it_in_their_list(): void
+    {
+        $produit = $this->creerProduitAvecStock('Ciment', 5000, 50);
+
+        $this->post('/ventes', [
+            'produit_id' => $produit->id,
+            'quantite' => 10,
+            'montant_paye' => 50000,
+            'client_nom' => 'Awa Diop',
+            'livraison_lieu' => 'Marché central',
+        ])->assertRedirect();
+
+        $livraison = Livraison::firstOrFail();
+        $livreur = User::factory()->pourEntreprise($this->entreprise, RoleEnum::Livreur)->create();
+
+        $this->actingAs($this->proprietaire);
+        $this->patch("/livraisons/{$livraison->id}/responsable", ['responsable_user_id' => $livreur->id])
+            ->assertRedirect();
+
+        $this->assertSame($livreur->id, $livraison->fresh()->responsable_user_id);
+
+        $this->actingAs($livreur);
+        $this->get('/livraisons')->assertInertia(fn (Assert $page) => $page
+            ->component('livraisons/index')
+            ->has('livraisons', 1)
+            ->where('livraisons.0.id', $livraison->id)
+        );
+    }
+
+    public function test_a_non_proprietaire_cannot_assign_a_responsable_livreur(): void
+    {
+        $produit = $this->creerProduitAvecStock('Tôles', 8000, 30);
+
+        $this->post('/ventes', [
+            'produit_id' => $produit->id,
+            'quantite' => 5,
+            'montant_paye' => 40000,
+            'client_nom' => 'Awa Diop',
+            'livraison_lieu' => 'Quartier Nord',
+        ])->assertRedirect();
+
+        $livraison = Livraison::firstOrFail();
+        $livreur = User::factory()->pourEntreprise($this->entreprise, RoleEnum::Livreur)->create();
+
+        $this->patch("/livraisons/{$livraison->id}/responsable", ['responsable_user_id' => $livreur->id])
+            ->assertForbidden();
+
+        $this->assertNull($livraison->fresh()->responsable_user_id);
+    }
+
+    public function test_assigning_a_responsable_to_an_already_delivered_livraison_is_rejected(): void
+    {
+        $produit = $this->creerProduitAvecStock('Sucre', 500, 20);
+
+        $this->post('/ventes', [
+            'produit_id' => $produit->id,
+            'quantite' => 10,
+            'montant_paye' => 5000,
+            'client_nom' => 'Awa Diop',
+            'livraison_lieu' => 'Marché central',
+        ])->assertRedirect();
+
+        $livraison = Livraison::firstOrFail();
+
+        $this->actingAs($this->proprietaire);
+        $this->post("/livraisons/{$livraison->id}/lignes", ['quantite' => 10])->assertRedirect();
+        $this->assertSame(Livraison::STATUT_LIVREE, $livraison->fresh()->statut);
+
+        $livreur = User::factory()->pourEntreprise($this->entreprise, RoleEnum::Livreur)->create();
+
+        $this->patch("/livraisons/{$livraison->id}/responsable", ['responsable_user_id' => $livreur->id])
+            ->assertSessionHasErrors('responsable_user_id');
+
+        $this->assertNull($livraison->fresh()->responsable_user_id);
     }
 }

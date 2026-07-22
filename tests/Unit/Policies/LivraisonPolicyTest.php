@@ -74,4 +74,22 @@ class LivraisonPolicyTest extends TestCase
 
         $this->assertFalse($this->policy->livrer($proprietaireEtranger, $livraison));
     }
+
+    public function test_a_proprietaire_can_assign_a_responsable_livreur(): void
+    {
+        $entreprise = Entreprise::factory()->create();
+        $proprietaire = User::factory()->pourEntreprise($entreprise, RoleEnum::Proprietaire)->create();
+        $livraison = $this->creerLivraison($entreprise);
+
+        $this->assertTrue($this->policy->assigner($proprietaire, $livraison));
+    }
+
+    public function test_a_non_proprietaire_cannot_assign_a_responsable_livreur(): void
+    {
+        $entreprise = Entreprise::factory()->create();
+        $vendeur = User::factory()->pourEntreprise($entreprise, RoleEnum::Vendeur)->create();
+        $livraison = $this->creerLivraison($entreprise);
+
+        $this->assertFalse($this->policy->assigner($vendeur, $livraison));
+    }
 }

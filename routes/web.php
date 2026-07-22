@@ -39,5 +39,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/creances/{creance}/versements', [VersementController::class, 'store'])->name('creances.versements.store');
 
     Route::get('/livraisons', [LivraisonController::class, 'index'])->name('livraisons.index');
+    Route::patch('/livraisons/{livraison}/responsable', [LivraisonController::class, 'assignerResponsable'])->name('livraisons.responsable.update');
     Route::post('/livraisons/{livraison}/lignes', [LigneLivraisonController::class, 'store'])->name('livraisons.lignes.store');
 });
