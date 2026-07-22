@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Clotures\ClotureController;
 use App\Http\Controllers\Creances\VersementController;
+use App\Http\Controllers\Depenses\DepenseController;
 use App\Http\Controllers\Export\ExportController;
 use App\Http\Controllers\Fournisseurs\FournisseurController;
 use App\Http\Controllers\Livraisons\LigneLivraisonController;
@@ -78,4 +79,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/dettes-fournisseur/{detteFournisseur}/versements', [VersementFournisseurController::class, 'store'])
         ->middleware('abonnement.actif')
         ->name('dettes-fournisseur.versements.store');
+
+    Route::post('/depenses', [DepenseController::class, 'store'])
+        ->middleware('abonnement.actif')
+        ->name('depenses.store');
+
+    Route::post('/depenses/{depense}/valider', [DepenseController::class, 'valider'])
+        ->middleware('abonnement.actif')
+        ->name('depenses.valider');
 });

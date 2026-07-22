@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\RoleEnum;
 use App\Models\Cloture;
+use App\Models\Depense;
 use App\Models\Paiement;
 use App\Models\PointDeVente;
 use App\Models\User;
@@ -54,11 +55,22 @@ class ClotureService
     }
 
     /**
+     * Dépenses total = somme des dépenses validee du point de vente jamais
+     * encore rattachées à une clôture. Toujours calculé à la volée, jamais
+     * lu depuis un total stocké — même règle que especesAttendues(). Une
+     * dépense encore enregistree (non validée) n'entre pas dans ce calcul.
+     */
+    public function depensesTotal(PointDeVente $pointDeVente): float
+    {
+        return round((float) $this->depensesNonRattachees($pointDeVente)->sum('montant'), 2);
+    }
+
+    /**
      * Validate an ouverte clôture: recomputes espèces attendues at this exact
      * moment, compares it to the espèces comptées, stores the résultant
-     * écart, rattache every covered paiement/versement so it can never be
-     * counted again, and freezes the clôture as validée (invariant H1: it
-     * can never be validated — i.e. written to — a second time).
+     * écart, rattache every covered paiement/versement/dépense so it can
+     * never be counted again, and freezes the clôture as validée (invariant
+     * H1: it can never be validated — i.e. written to — a second time).
      */
     public function valider(Cloture $cloture, float $especesComptees, User $validePar): Cloture
     {
@@ -79,17 +91,21 @@ class ClotureService
 
             $paiements = $this->paiementsNonRattaches($pointDeVente)->get();
             $versements = $this->versementsNonRattaches($pointDeVente)->get();
+            $depenses = $this->depensesNonRattachees($pointDeVente)->get();
 
             $especesAttendues = round((float) $paiements->sum('montant') + (float) $versements->sum('montant'), 2);
             $ecart = round($especesComptees - $especesAttendues, 2);
+            $depensesTotal = round((float) $depenses->sum('montant'), 2);
 
             Paiement::whereIn('id', $paiements->pluck('id'))->update(['cloture_id' => $cloture->id]);
             Versement::whereIn('id', $versements->pluck('id'))->update(['cloture_id' => $cloture->id]);
+            Depense::whereIn('id', $depenses->pluck('id'))->update(['cloture_id' => $cloture->id]);
 
             $cloture->update([
                 'especes_attendues' => $especesAttendues,
                 'especes_comptees' => $especesComptees,
                 'ecart' => $ecart,
+                'depenses_total' => $depensesTotal,
                 'validee_par_user_id' => $validePar->id,
                 'validee_a' => now(),
                 'statut' => Cloture::STATUT_VALIDEE,
@@ -155,5 +171,12 @@ class ClotureService
         return Versement::whereNull('cloture_id')
             ->where('mode', Versement::MODE_ESPECES)
             ->whereHas('creance.vente', fn ($query) => $query->where('point_de_vente_id', $pointDeVente->id));
+    }
+
+    private function depensesNonRattachees(PointDeVente $pointDeVente)
+    {
+        return Depense::whereNull('cloture_id')
+            ->where('statut', Depense::STATUT_VALIDEE)
+            ->where('point_de_vente_id', $pointDeVente->id);
     }
 }

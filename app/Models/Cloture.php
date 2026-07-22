@@ -82,4 +82,12 @@ class Cloture extends Model
     {
         return $this->hasMany(Versement::class);
     }
+
+    /**
+     * @return HasMany<Depense, $this>
+     */
+    public function depenses(): HasMany
+    {
+        return $this->hasMany(Depense::class);
+    }
 }
