@@ -10,6 +10,7 @@ use App\Models\Paiement;
 use App\Models\PointDeVente;
 use App\Models\User;
 use App\Models\Versement;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -144,6 +145,23 @@ class ClotureService
     }
 
     /**
+     * Même dépenses que depensesTotal() — validée, de ce point de vente —
+     * mais bornées par une plage de dates plutôt que par
+     * "non rattachée à une clôture". Utilisé par RapportService (Chantier
+     * 15) : un rapport en lecture seule sur une période choisie n'a besoin
+     * d'aucune notion de clôture, seulement d'un intervalle de temps.
+     */
+    public function depensesSurPeriode(PointDeVente $pointDeVente, Carbon $debut, Carbon $fin): float
+    {
+        return round(
+            (float) $this->depensesDuPointDeVente($pointDeVente)
+                ->whereBetween('created_at', [$debut, $fin])
+                ->sum('montant'),
+            2
+        );
+    }
+
+    /**
      * Validate an ouverte clôture: recomputes espèces attendues at this exact
      * moment, compares it to the espèces comptées, stores the résultant
      * écart, rattache every covered paiement/versement/dépense so it can
@@ -254,9 +272,18 @@ class ClotureService
 
     private function depensesNonRattachees(PointDeVente $pointDeVente)
     {
-        return Depense::whereNull('cloture_id')
-            ->where('statut', Depense::STATUT_VALIDEE)
-            ->where('point_de_vente_id', $pointDeVente->id);
+        return $this->depensesDuPointDeVente($pointDeVente)->whereNull('cloture_id');
+    }
+
+    /**
+     * Base commune à depensesNonRattachees() et depensesSurPeriode() :
+     * dépenses validées de ce point de vente, sans préjuger de leur
+     * rattachement à une clôture ni d'une quelconque période.
+     */
+    private function depensesDuPointDeVente(PointDeVente $pointDeVente)
+    {
+        return Depense::where('point_de_vente_id', $pointDeVente->id)
+            ->where('statut', Depense::STATUT_VALIDEE);
     }
 
     /**

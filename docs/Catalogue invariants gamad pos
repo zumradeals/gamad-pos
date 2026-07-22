@@ -245,6 +245,15 @@ décisions encore ouvertes dans la Matrice des rôles :
   vente.
 - La règle de priorité quand un versement sur créance et une correction de stock
   liée à un retour surviennent dans la même fenêtre de clôture.
+- ClotureService::especesAttendues() ne compte aujourd'hui que les paiements et
+  versements liés à une Vente (whereHas('vente', ...)) — un acompte de commande
+  en espèces (Chantier 14) n'entre dans aucune clôture, alors qu'il s'agit bien
+  d'argent physiquement encaissé au point de vente. Découvert en écrivant
+  RapportService (Chantier 15), qui lui compte cet encaissement dans ses
+  recettes. Reste à trancher : faut-il étendre especesAttendues() lui-même aux
+  commandes (et si oui, quel effet sur les clôtures déjà validées avant ce
+  chantier), ou est-ce un choix délibéré à documenter comme tel ? Chantier
+  séparé, pas un correctif improvisé en marge d'un rapport en lecture seule.
 
 Ces cas ne doivent pas recevoir de comportement par défaut improvisé dans le
 code : ils doivent remonter ici, être tranchés explicitement, puis migrer dans
