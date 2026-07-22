@@ -43,4 +43,12 @@ class Entreprise extends Model
     {
         return $this->hasMany(Produit::class);
     }
+
+    /**
+     * @return HasMany<Abonnement, $this>
+     */
+    public function abonnements(): HasMany
+    {
+        return $this->hasMany(Abonnement::class);
+    }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Abonnements\AbonnementController;
 use App\Http\Controllers\Appareils\AppareilMemoriseController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
@@ -41,4 +42,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/livraisons', [LivraisonController::class, 'index'])->name('livraisons.index');
     Route::patch('/livraisons/{livraison}/responsable', [LivraisonController::class, 'assignerResponsable'])->name('livraisons.responsable.update');
     Route::post('/livraisons/{livraison}/lignes', [LigneLivraisonController::class, 'store'])->name('livraisons.lignes.store');
+
+    Route::post('/abonnements/activer', [AbonnementController::class, 'activer'])->name('abonnements.activer');
 });

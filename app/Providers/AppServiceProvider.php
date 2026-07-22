@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Contracts\PaiementAbonnementProvider;
+use App\Services\FakePaiementAbonnementProvider;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +17,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // No real payment provider exists yet (see PaiementAbonnementProvider) —
+        // this binding is the only place that will change when one is added.
+        $this->app->bind(PaiementAbonnementProvider::class, FakePaiementAbonnementProvider::class);
     }
 
     /**
