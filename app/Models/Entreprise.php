@@ -67,4 +67,12 @@ class Entreprise extends Model
     {
         return $this->abonnementActif()?->estSuspendu() ?? false;
     }
+
+    /**
+     * @return HasMany<Fournisseur, $this>
+     */
+    public function fournisseurs(): HasMany
+    {
+        return $this->hasMany(Fournisseur::class);
+    }
 }

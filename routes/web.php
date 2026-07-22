@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Clotures\ClotureController;
 use App\Http\Controllers\Creances\VersementController;
 use App\Http\Controllers\Export\ExportController;
+use App\Http\Controllers\Fournisseurs\FournisseurController;
 use App\Http\Controllers\Livraisons\LigneLivraisonController;
 use App\Http\Controllers\Livraisons\LivraisonController;
 use App\Http\Controllers\PointsDeVente\SelectionController;
@@ -63,4 +64,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/abonnements/activer', [AbonnementController::class, 'activer'])->name('abonnements.activer');
 
     Route::get('/export', [ExportController::class, 'index'])->name('export.index');
+
+    Route::get('/fournisseurs', [FournisseurController::class, 'index'])->name('fournisseurs.index');
+    Route::post('/fournisseurs', [FournisseurController::class, 'store'])->name('fournisseurs.store');
+    Route::patch('/fournisseurs/{fournisseur}', [FournisseurController::class, 'update'])->name('fournisseurs.update');
 });
