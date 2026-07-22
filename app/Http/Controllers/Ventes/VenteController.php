@@ -17,14 +17,18 @@ class VenteController extends Controller
     {
         $pointDeVenteId = $request->session()->get('point_de_vente_id');
 
-        $produits = Produit::where('point_de_vente_id', $pointDeVenteId)
+        abort_unless($pointDeVenteId, 403);
+
+        $pointDeVente = PointDeVente::findOrFail((int) $pointDeVenteId);
+
+        $produits = Produit::where('entreprise_id', $pointDeVente->entreprise_id)
             ->get()
             ->map(fn (Produit $produit) => [
                 'id' => $produit->id,
                 'nom' => $produit->nom,
                 'prix_vente' => $produit->prix_vente,
                 'unite' => $produit->unite,
-                'stock_disponible' => $produit->stockDisponible(),
+                'stock_disponible' => $produit->stockDisponible($pointDeVente),
             ])
             ->values();
 
@@ -50,7 +54,7 @@ class VenteController extends Controller
         abort_unless($pointDeVenteId, 403);
 
         $pointDeVente = PointDeVente::findOrFail((int) $pointDeVenteId);
-        $produit = Produit::where('point_de_vente_id', $pointDeVenteId)->findOrFail((int) $data['produit_id']);
+        $produit = Produit::where('entreprise_id', $pointDeVente->entreprise_id)->findOrFail((int) $data['produit_id']);
 
         $client = filled($data['client_nom'] ?? null)
             ? ['nom' => $data['client_nom'], 'telephone' => $data['client_telephone'] ?? null]

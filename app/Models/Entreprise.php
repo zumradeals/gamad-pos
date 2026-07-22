@@ -27,4 +27,20 @@ class Entreprise extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    /**
+     * @return HasMany<Depot, $this>
+     */
+    public function depots(): HasMany
+    {
+        return $this->hasMany(Depot::class);
+    }
+
+    /**
+     * @return HasMany<Produit, $this>
+     */
+    public function produits(): HasMany
+    {
+        return $this->hasMany(Produit::class);
+    }
 }

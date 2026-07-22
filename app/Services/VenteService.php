@@ -50,7 +50,7 @@ class VenteService
             ]);
         }
 
-        if ($produit->stockDisponible() < $quantite) {
+        if ($produit->stockDisponible($pointDeVente) < $quantite) {
             throw ValidationException::withMessages([
                 'quantite' => 'Stock disponible insuffisant pour cette quantité.',
             ]);
@@ -72,7 +72,8 @@ class VenteService
 
             $vente->mouvementsStock()->create([
                 'produit_id' => $produit->id,
-                'point_de_vente_id' => $pointDeVente->id,
+                'emplacement_type' => PointDeVente::class,
+                'emplacement_id' => $pointDeVente->id,
                 'type' => MouvementStock::TYPE_SORTIE_VENTE,
                 'quantite' => $quantite,
             ]);

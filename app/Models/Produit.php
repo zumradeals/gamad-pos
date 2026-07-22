@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['point_de_vente_id', 'nom', 'prix_vente', 'unite'])]
+#[Fillable(['entreprise_id', 'nom', 'prix_vente', 'unite'])]
 class Produit extends Model
 {
     use HasFactory;
@@ -21,11 +21,11 @@ class Produit extends Model
     }
 
     /**
-     * @return BelongsTo<PointDeVente, $this>
+     * @return BelongsTo<Entreprise, $this>
      */
-    public function pointDeVente(): BelongsTo
+    public function entreprise(): BelongsTo
     {
-        return $this->belongsTo(PointDeVente::class);
+        return $this->belongsTo(Entreprise::class);
     }
 
     /**
@@ -37,14 +37,38 @@ class Produit extends Model
     }
 
     /**
-     * Stock disponible = somme des réceptions moins somme des sorties de vente.
+     * Stock disponible à un emplacement donné (point de vente ou dépôt) :
+     * réceptions, entrées de transfert réceptionnées et corrections moins
+     * sorties de vente et sorties de transfert, à cet emplacement précis.
+     * Un stock en transit (transfert non encore réceptionné) ne compte nulle
+     * part tant qu'il n'a pas été confirmé à destination.
      */
-    public function stockDisponible(): float
+    public function stockDisponible(Model $emplacement): float
     {
         $total = $this->mouvementsStock()
-            ->selectRaw('SUM(CASE WHEN type = ? THEN quantite ELSE -quantite END) AS total', [MouvementStock::TYPE_RECEPTION])
+            ->where('emplacement_type', $emplacement::class)
+            ->where('emplacement_id', $emplacement->id)
+            ->where(function ($query) {
+                $query->whereNot('type', MouvementStock::TYPE_TRANSFERT_ENTREE)
+                    ->orWhereNotNull('receptionne_at');
+            })
+            ->selectRaw(
+                'SUM(CASE
+                    WHEN type IN (?, ?) THEN quantite
+                    WHEN type = ? THEN quantite
+                    WHEN type IN (?, ?) THEN -quantite
+                    ELSE 0
+                END) AS total',
+                [
+                    MouvementStock::TYPE_RECEPTION,
+                    MouvementStock::TYPE_TRANSFERT_ENTREE,
+                    MouvementStock::TYPE_CORRECTION,
+                    MouvementStock::TYPE_SORTIE_VENTE,
+                    MouvementStock::TYPE_TRANSFERT_SORTIE,
+                ]
+            )
             ->value('total');
 
-        return (float) ($total ?? 0);
+        return round((float) ($total ?? 0), 3);
     }
 }

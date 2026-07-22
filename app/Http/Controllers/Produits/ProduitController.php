@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Produits;
 
 use App\Http\Controllers\Controller;
 use App\Models\MouvementStock;
+use App\Models\PointDeVente;
 use App\Models\Produit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,9 @@ class ProduitController extends Controller
 {
     /**
      * Create a produit with its initial stock (a simple reception). Minimal
-     * endpoint for testing — not a full catalogue management screen.
+     * endpoint for testing — not a full catalogue management screen. The
+     * produit itself belongs to the entreprise; its opening stock lands at
+     * the currently selected point de vente as an emplacement.
      */
     public function store(Request $request): RedirectResponse
     {
@@ -28,16 +31,19 @@ class ProduitController extends Controller
 
         abort_unless($pointDeVenteId, 403);
 
-        DB::transaction(function () use ($data, $pointDeVenteId) {
+        $pointDeVente = PointDeVente::findOrFail((int) $pointDeVenteId);
+
+        DB::transaction(function () use ($data, $pointDeVente) {
             $produit = Produit::create([
-                'point_de_vente_id' => $pointDeVenteId,
+                'entreprise_id' => $pointDeVente->entreprise_id,
                 'nom' => $data['nom'],
                 'prix_vente' => $data['prix_vente'],
                 'unite' => $data['unite'],
             ]);
 
             $produit->mouvementsStock()->create([
-                'point_de_vente_id' => $pointDeVenteId,
+                'emplacement_type' => PointDeVente::class,
+                'emplacement_id' => $pointDeVente->id,
                 'type' => MouvementStock::TYPE_RECEPTION,
                 'quantite' => $data['quantite_initiale'],
             ]);

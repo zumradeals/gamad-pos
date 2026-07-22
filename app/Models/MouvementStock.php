@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-#[Fillable(['produit_id', 'point_de_vente_id', 'type', 'quantite', 'origine_type', 'origine_id'])]
+#[Fillable(['produit_id', 'emplacement_type', 'emplacement_id', 'type', 'quantite', 'receptionne_at', 'origine_type', 'origine_id'])]
 class MouvementStock extends Model
 {
     use HasFactory;
@@ -19,10 +19,17 @@ class MouvementStock extends Model
 
     public const TYPE_SORTIE_VENTE = 'sortie_vente';
 
+    public const TYPE_CORRECTION = 'correction';
+
+    public const TYPE_TRANSFERT_SORTIE = 'transfert_sortie';
+
+    public const TYPE_TRANSFERT_ENTREE = 'transfert_entree';
+
     protected function casts(): array
     {
         return [
             'quantite' => 'decimal:3',
+            'receptionne_at' => 'datetime',
         ];
     }
 
@@ -35,11 +42,11 @@ class MouvementStock extends Model
     }
 
     /**
-     * @return BelongsTo<PointDeVente, $this>
+     * @return MorphTo<Model, $this>
      */
-    public function pointDeVente(): BelongsTo
+    public function emplacement(): MorphTo
     {
-        return $this->belongsTo(PointDeVente::class);
+        return $this->morphTo();
     }
 
     /**

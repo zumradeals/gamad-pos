@@ -52,7 +52,7 @@ class VenteTest extends TestCase
     {
         $produit = $this->creerProduitAvecStock('Savon', 500, 20);
 
-        $this->assertSame(20.0, $produit->stockDisponible());
+        $this->assertSame(20.0, $produit->stockDisponible($this->pointDeVente));
 
         $this->post('/ventes', [
             'produit_id' => $produit->id,
@@ -60,7 +60,7 @@ class VenteTest extends TestCase
             'montant_paye' => 1500,
         ])->assertRedirect();
 
-        $this->assertSame(17.0, $produit->fresh()->stockDisponible());
+        $this->assertSame(17.0, $produit->fresh()->stockDisponible($this->pointDeVente));
     }
 
     public function test_a_validated_vente_creates_a_traceable_sortie_vente_stock_movement(): void
@@ -77,7 +77,8 @@ class VenteTest extends TestCase
 
         $this->assertDatabaseHas('mouvements_stock', [
             'produit_id' => $produit->id,
-            'point_de_vente_id' => $this->pointDeVente->id,
+            'emplacement_type' => PointDeVente::class,
+            'emplacement_id' => $this->pointDeVente->id,
             'type' => MouvementStock::TYPE_SORTIE_VENTE,
             'quantite' => 5,
             'origine_type' => Vente::class,
@@ -108,6 +109,6 @@ class VenteTest extends TestCase
         ])->assertSessionHasErrors('client');
 
         $this->assertDatabaseMissing('ventes', ['point_de_vente_id' => $this->pointDeVente->id]);
-        $this->assertSame(10.0, $produit->fresh()->stockDisponible());
+        $this->assertSame(10.0, $produit->fresh()->stockDisponible($this->pointDeVente));
     }
 }

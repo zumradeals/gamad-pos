@@ -81,7 +81,7 @@ class CreanceTest extends TestCase
 
         $this->assertDatabaseCount('ventes', 0);
         $this->assertDatabaseCount('creances', 0);
-        $this->assertSame(10.0, $produit->fresh()->stockDisponible());
+        $this->assertSame(10.0, $produit->fresh()->stockDisponible($this->pointDeVente));
     }
 
     public function test_a_versement_that_brings_the_balance_to_zero_settles_the_debt(): void
@@ -140,7 +140,7 @@ class CreanceTest extends TestCase
             'montant_paye' => 1500,
         ])->assertRedirect();
 
-        $this->assertSame(17.0, $produit->fresh()->stockDisponible());
+        $this->assertSame(17.0, $produit->fresh()->stockDisponible($this->pointDeVente));
         $this->assertDatabaseCount('creances', 0);
         $this->assertDatabaseCount('clients', 0);
     }

@@ -170,7 +170,7 @@ class LivraisonTest extends TestCase
             'montant_paye' => 1500,
         ])->assertRedirect();
 
-        $this->assertSame(17.0, $produit->fresh()->stockDisponible());
+        $this->assertSame(17.0, $produit->fresh()->stockDisponible($this->pointDeVente));
         $this->assertDatabaseCount('livraisons', 0);
     }
 

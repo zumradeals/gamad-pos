@@ -2,14 +2,14 @@
 
 namespace Database\Factories;
 
+use App\Models\Depot;
 use App\Models\Entreprise;
-use App\Models\Produit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<Produit>
+ * @extends Factory<Depot>
  */
-class ProduitFactory extends Factory
+class DepotFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -21,8 +21,7 @@ class ProduitFactory extends Factory
         return [
             'entreprise_id' => Entreprise::factory(),
             'nom' => fake()->words(2, true),
-            'prix_vente' => fake()->randomFloat(2, 100, 10000),
-            'unite' => fake()->randomElement(['unite', 'kg', 'litre', 'carton']),
+            'adresse' => fake()->streetAddress(),
         ];
     }
 }
