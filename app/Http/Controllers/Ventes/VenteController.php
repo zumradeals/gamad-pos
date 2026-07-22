@@ -41,6 +41,8 @@ class VenteController extends Controller
             'montant_paye' => ['required', 'numeric', 'min:0'],
             'client_nom' => ['nullable', 'string', 'max:255'],
             'client_telephone' => ['nullable', 'string', 'max:50'],
+            'livraison_lieu' => ['nullable', 'string', 'max:255'],
+            'livraison_date_prevue' => ['nullable', 'date'],
         ]);
 
         $pointDeVenteId = $request->session()->get('point_de_vente_id');
@@ -54,6 +56,10 @@ class VenteController extends Controller
             ? ['nom' => $data['client_nom'], 'telephone' => $data['client_telephone'] ?? null]
             : null;
 
+        $livraison = filled($data['livraison_lieu'] ?? null)
+            ? ['lieu' => $data['livraison_lieu'], 'date_prevue' => $data['livraison_date_prevue'] ?? null]
+            : null;
+
         $ventes->enregistrerVente(
             vendeur: $request->user(),
             pointDeVente: $pointDeVente,
@@ -61,6 +67,7 @@ class VenteController extends Controller
             quantite: (float) $data['quantite'],
             montantPaye: (float) $data['montant_paye'],
             client: $client,
+            livraison: $livraison,
         );
 
         return redirect()->route('ventes.create');

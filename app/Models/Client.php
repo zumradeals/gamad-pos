@@ -28,4 +28,12 @@ class Client extends Model
     {
         return $this->hasMany(Creance::class);
     }
+
+    /**
+     * @return HasMany<Livraison, $this>
+     */
+    public function livraisons(): HasMany
+    {
+        return $this->hasMany(Livraison::class);
+    }
 }

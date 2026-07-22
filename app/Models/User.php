@@ -82,4 +82,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(JournalConnexion::class);
     }
+
+    /**
+     * Livraisons for which this user is the assigned responsable (livreur).
+     *
+     * @return HasMany<Livraison, $this>
+     */
+    public function livraisons(): HasMany
+    {
+        return $this->hasMany(Livraison::class, 'responsable_user_id');
+    }
 }

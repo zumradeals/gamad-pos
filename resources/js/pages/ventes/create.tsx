@@ -13,6 +13,7 @@ export default function VenteCreate({ produits }: { produits: Produit[] }) {
     const [produit, setProduit] = useState<Produit | null>(null);
     const [confirme, setConfirme] = useState(false);
     const [paiementPartiel, setPaiementPartiel] = useState(false);
+    const [livraisonDifferee, setLivraisonDifferee] = useState(false);
 
     const { data, setData, post, processing, errors, transform, reset } = useForm({
         produit_id: '',
@@ -20,6 +21,8 @@ export default function VenteCreate({ produits }: { produits: Produit[] }) {
         montant_paye: '',
         client_nom: '',
         client_telephone: '',
+        livraison_lieu: '',
+        livraison_date_prevue: '',
     });
 
     const total = useMemo(() => {
@@ -28,17 +31,22 @@ export default function VenteCreate({ produits }: { produits: Produit[] }) {
         return Number(produit.prix_vente) * (Number.isNaN(quantite) ? 0 : quantite);
     }, [produit, data.quantite]);
 
+    const besoinClient = paiementPartiel || livraisonDifferee;
+
     transform((formData) => ({
         ...formData,
         montant_paye: paiementPartiel ? formData.montant_paye : total,
-        client_nom: paiementPartiel ? formData.client_nom : '',
-        client_telephone: paiementPartiel ? formData.client_telephone : '',
+        client_nom: besoinClient ? formData.client_nom : '',
+        client_telephone: besoinClient ? formData.client_telephone : '',
+        livraison_lieu: livraisonDifferee ? formData.livraison_lieu : '',
+        livraison_date_prevue: livraisonDifferee ? formData.livraison_date_prevue : '',
     }));
 
     const choisirProduit = (p: Produit) => {
         setConfirme(false);
         setProduit(p);
         setPaiementPartiel(false);
+        setLivraisonDifferee(false);
         setData('produit_id', String(p.id));
     };
 
@@ -49,6 +57,7 @@ export default function VenteCreate({ produits }: { produits: Produit[] }) {
                 setProduit(null);
                 setConfirme(true);
                 setPaiementPartiel(false);
+                setLivraisonDifferee(false);
                 reset();
             },
         });
@@ -105,23 +114,30 @@ export default function VenteCreate({ produits }: { produits: Produit[] }) {
                             Le client ne paie pas tout aujourd'hui
                         </label>
 
-                        {paiementPartiel && (
-                            <>
-                                <div className="flex flex-col gap-1">
-                                    <label htmlFor="montant_paye">Montant reçu aujourd'hui</label>
-                                    <input
-                                        id="montant_paye"
-                                        type="number"
-                                        min="0"
-                                        step="any"
-                                        inputMode="decimal"
-                                        value={data.montant_paye}
-                                        onChange={(e) => setData('montant_paye', e.target.value)}
-                                        className="border p-2"
-                                    />
-                                    {fieldErrors.montant_paye && <p className="text-sm text-red-600">{fieldErrors.montant_paye}</p>}
-                                </div>
+                        <label className="flex items-center gap-2 text-sm">
+                            <input type="checkbox" checked={livraisonDifferee} onChange={(e) => setLivraisonDifferee(e.target.checked)} />
+                            Remettre au client plus tard (livraison)
+                        </label>
 
+                        {paiementPartiel && (
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="montant_paye">Montant reçu aujourd'hui</label>
+                                <input
+                                    id="montant_paye"
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    inputMode="decimal"
+                                    value={data.montant_paye}
+                                    onChange={(e) => setData('montant_paye', e.target.value)}
+                                    className="border p-2"
+                                />
+                                {fieldErrors.montant_paye && <p className="text-sm text-red-600">{fieldErrors.montant_paye}</p>}
+                            </div>
+                        )}
+
+                        {besoinClient && (
+                            <>
                                 <div className="flex flex-col gap-1">
                                     <label htmlFor="client_nom">Nom du client</label>
                                     <input
@@ -142,6 +158,33 @@ export default function VenteCreate({ produits }: { produits: Produit[] }) {
                                         type="text"
                                         value={data.client_telephone}
                                         onChange={(e) => setData('client_telephone', e.target.value)}
+                                        className="border p-2"
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        {livraisonDifferee && (
+                            <>
+                                <div className="flex flex-col gap-1">
+                                    <label htmlFor="livraison_lieu">Lieu de livraison</label>
+                                    <input
+                                        id="livraison_lieu"
+                                        type="text"
+                                        value={data.livraison_lieu}
+                                        onChange={(e) => setData('livraison_lieu', e.target.value)}
+                                        className="border p-2"
+                                    />
+                                    {fieldErrors.livraison_lieu && <p className="text-sm text-red-600">{fieldErrors.livraison_lieu}</p>}
+                                </div>
+
+                                <div className="flex flex-col gap-1">
+                                    <label htmlFor="livraison_date_prevue">Date prévue (optionnel)</label>
+                                    <input
+                                        id="livraison_date_prevue"
+                                        type="date"
+                                        value={data.livraison_date_prevue}
+                                        onChange={(e) => setData('livraison_date_prevue', e.target.value)}
                                         className="border p-2"
                                     />
                                 </div>

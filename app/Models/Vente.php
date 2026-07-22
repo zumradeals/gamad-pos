@@ -71,4 +71,12 @@ class Vente extends Model
     {
         return $this->hasOne(Creance::class);
     }
+
+    /**
+     * @return HasOne<Livraison, $this>
+     */
+    public function livraison(): HasOne
+    {
+        return $this->hasOne(Livraison::class);
+    }
 }
