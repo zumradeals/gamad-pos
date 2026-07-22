@@ -112,6 +112,23 @@ Cette séparation est un **invariant**, pas une préférence esthétique
   (GAMAD Business Network continental) restent strictement séparés dès la
   conception des données (§1 roadmap). GAMAD Core ne doit jamais contenir de
   logique métier propre au POS (§21 roadmap).
+- **Précision d'architecture (décision explicite, pas une lecture littérale de
+  "famille de produits" §2 roadmap)** : cette séparation est **logique**, pas
+  **physique**. "Famille de produits" décrit une identité de marque (des noms
+  distincts pour des capacités distinctes), pas une obligation de dépôts, de
+  bases de données ou de VPS séparés. GAMAD POS est construit et restera
+  construit comme un **monolithe modulaire** : un seul dépôt (`gamad-pos`), un
+  seul déploiement, une seule base de données, tant que la charge, l'équipe ou
+  un besoin réel ne justifie pas un éclatement — jamais par anticipation. Les
+  niveaux et cycles futurs (IKOMA Market, Supplier, Connect, Insights, GAMAD
+  Core...) s'implémentent comme des modules internes (namespaces, dossiers,
+  éventuellement des préfixes de route dédiés), qui communiquent entre eux via
+  les contrats de service et la Cartographie des événements métier déjà posés
+  — jamais par accès direct aux tables d'un autre module. C'est exactement la
+  discipline "petites graines" (§10 document de passation) appliquée à
+  l'architecture elle-même : la frontière logique est là dès le premier jour,
+  ce qui laisse la porte ouverte à une séparation physique future sans jamais
+  l'imposer avant que le besoin soit réel.
 - Tout système de rôles ou de module activable se défend à deux niveaux :
   navigation conditionnelle **et** contrôle d'accès au niveau de l'action elle-même
   (policy/middleware). Cacher un lien ne suffit jamais (§9 document de passation).
