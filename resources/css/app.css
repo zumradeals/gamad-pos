@@ -3,9 +3,68 @@
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
+/**
+ * Chantier 17 — système de design. Palette tirée telle quelle du logo GAMAD
+ * (globe tenu par des mains, bandeau doré) ; voir docs/Charte produit gamad
+ * pos §5 pour la direction esthétique (clarté avant tout, un seul accent
+ * ambre par écran, cibles tactiles ≥ 44px).
+ *
+ * Deux ajouts au-delà de la palette validée, faute d'équivalent fourni —
+ * documentés ici plutôt que laissés implicites :
+ *   - --color-danger : la palette ne définit aucune couleur d'erreur (elle ne
+ *     couvre que ambre/bleu/vert). Un rouge terracotta sourd a été choisi
+ *     pour rester dans la même famille chaude que le reste de la palette
+ *     plutôt qu'un rouge saturé générique. À valider avec la source du logo
+ *     si une couleur d'erreur y est un jour précisée.
+ *   - --color-surface : blanc pur, utilisé uniquement pour les surfaces
+ *     "Card" qui doivent se détacher légèrement du fond crème
+ *     (--color-background) — la palette ne distingue pas fond de page et
+ *     fond de carte, ce choix comble l'écart.
+ */
 @theme {
     --font-sans:
         'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+
+    /* Typographie de titre distincte du corps de texte (Instrument Sans
+       reste seule utilisée pour tout ce qui doit rester maximalement lisible
+       : boutons, champs, corps de texte — cf. persona-limite). Un seul poids
+       chargé (600) pour limiter le poids ajouté sur connexion faible (§1
+       roadmap). */
+    --font-display: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
+
+    /* Ambre — un seul CTA ambre par écran, jamais décoratif. */
+    --color-accent: #ef9f27;
+    --color-accent-foreground: #412402;
+
+    /* Bleu — en-têtes, structure, confiance, navigation. Pas une couleur de
+       bouton d'action générique. */
+    --color-primary: #1d5b8f;
+    --color-primary-foreground: #fdf8ef;
+
+    /* Vert — réservé aux confirmations et états positifs uniquement (stock
+       disponible, succès). Jamais une couleur décorative généraliste. */
+    --color-success: #639922;
+    --color-success-soft: #eaf3de;
+    --color-success-foreground: #27500a;
+
+    /* Rouge — ajout hors palette source, voir commentaire ci-dessus. */
+    --color-danger: #b3261e;
+    --color-danger-soft: #f8e9e7;
+    --color-danger-foreground: #55140f;
+
+    /* Fond, surfaces, texte, bordures. */
+    --color-background: #fdf8ef;
+    --color-surface: #ffffff;
+    --color-foreground: #2b2620;
+    --color-border: #e4dcc8;
+    --color-muted: #8a8578;
+    --color-muted-foreground: #5f5e5a;
+}
+
+@layer base {
+    body {
+        @apply bg-background text-foreground;
+    }
 }

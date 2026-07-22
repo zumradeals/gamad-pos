@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import { Card } from '@/components/ui/card';
 
 type PointDeVente = {
     id: number;
@@ -6,7 +7,11 @@ type PointDeVente = {
     adresse: string | null;
 };
 
-export default function Selection({ pointsDeVente }: { pointsDeVente: PointDeVente[] }) {
+export default function Selection({
+    pointsDeVente,
+}: {
+    pointsDeVente: PointDeVente[];
+}) {
     const selectionner = (id: number) => {
         router.post('/points-de-vente/selection', { point_de_vente_id: id });
     };
@@ -14,18 +19,29 @@ export default function Selection({ pointsDeVente }: { pointsDeVente: PointDeVen
     return (
         <>
             <Head title="Sélection du point de vente" />
-            <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-white text-black dark:bg-black dark:text-white">
-                <h1 className="text-xl font-medium">Choisissez un point de vente</h1>
-                <ul className="flex w-full max-w-sm flex-col gap-2">
+            <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-4">
+                <h1 className="font-display text-xl font-semibold text-foreground">
+                    Choisissez un point de vente
+                </h1>
+                <div className="flex w-full max-w-sm flex-col gap-3">
                     {pointsDeVente.map((pdv) => (
-                        <li key={pdv.id}>
-                            <button onClick={() => selectionner(pdv.id)} className="w-full border p-3 text-left">
-                                <span className="block font-medium">{pdv.nom}</span>
-                                {pdv.adresse && <span className="block text-sm text-gray-500">{pdv.adresse}</span>}
+                        <Card key={pdv.id} className="p-0">
+                            <button
+                                onClick={() => selectionner(pdv.id)}
+                                className="flex w-full flex-col gap-0.5 p-4 text-left"
+                            >
+                                <span className="text-base font-medium text-foreground">
+                                    {pdv.nom}
+                                </span>
+                                {pdv.adresse && (
+                                    <span className="text-sm text-muted-foreground">
+                                        {pdv.adresse}
+                                    </span>
+                                )}
                             </button>
-                        </li>
+                        </Card>
                     ))}
-                </ul>
+                </div>
             </div>
         </>
     );

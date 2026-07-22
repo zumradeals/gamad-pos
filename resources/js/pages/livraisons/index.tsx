@@ -1,5 +1,11 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { type FormEventHandler, useState } from 'react';
+import { useState } from 'react';
+import type { FormEventHandler } from 'react';
+import { AppShell } from '@/components/layout/app-shell';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 type Livraison = {
     id: number;
@@ -29,9 +35,17 @@ export default function LivraisonsIndex({
 }) {
     const [enCours, setEnCours] = useState<number | null>(null);
 
-    const assignerResponsable = (livraisonId: number, responsableUserId: string) => {
-        if (!responsableUserId) return;
-        router.patch(`/livraisons/${livraisonId}/responsable`, { responsable_user_id: responsableUserId });
+    const assignerResponsable = (
+        livraisonId: number,
+        responsableUserId: string,
+    ) => {
+        if (!responsableUserId) {
+            return;
+        }
+
+        router.patch(`/livraisons/${livraisonId}/responsable`, {
+            responsable_user_id: responsableUserId,
+        });
     };
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -40,7 +54,10 @@ export default function LivraisonsIndex({
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        if (enCours === null) return;
+
+        if (enCours === null) {
+            return;
+        }
 
         post(`/livraisons/${enCours}/lignes`, {
             onSuccess: () => {
@@ -51,76 +68,113 @@ export default function LivraisonsIndex({
     };
 
     return (
-        <>
+        <AppShell title="Livraisons">
             <Head title="Livraisons" />
-            <div className="min-h-screen bg-white p-8 text-black dark:bg-black dark:text-white">
-                <h1 className="mb-4 text-xl font-medium">Livraisons</h1>
 
-                {abonnementSuspendu && (
-                    <p className="mb-4 border border-red-600 p-3 text-red-700">
-                        Abonnement suspendu : renouvelez-le pour reprendre les livraisons.
-                    </p>
-                )}
+            {abonnementSuspendu && (
+                <Alert variant="error">
+                    Abonnement suspendu : renouvelez-le pour reprendre les
+                    livraisons.
+                </Alert>
+            )}
 
-                <ul className="flex flex-col gap-2">
-                    {livraisons.map((livraison) => (
-                        <li key={livraison.id} className="flex flex-col gap-2 border p-3">
-                            <span>
-                                {livraison.client} — {livraison.lieu} ({livraison.statut}) — reste à livrer : {livraison.reste_a_livrer}
-                                {livraison.responsable_nom ? ` — responsable : ${livraison.responsable_nom}` : ''}
-                            </span>
+            <div className="flex flex-col gap-3">
+                {livraisons.map((livraison) => (
+                    <Card key={livraison.id} className="flex flex-col gap-3">
+                        <div>
+                            <p className="text-base font-medium text-foreground">
+                                {livraison.client} — {livraison.lieu}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                {livraison.statut} — reste à livrer :{' '}
+                                {livraison.reste_a_livrer}
+                                {livraison.responsable_nom
+                                    ? ` — responsable : ${livraison.responsable_nom}`
+                                    : ''}
+                            </p>
+                        </div>
 
-                            {peutAssigner && livraison.statut !== 'livree' && (
-                                <label className="flex items-center gap-2 text-sm">
-                                    Responsable :
-                                    <select
-                                        value={livraison.responsable_id ?? ''}
-                                        onChange={(e) => assignerResponsable(livraison.id, e.target.value)}
-                                        className="border p-1"
-                                    >
-                                        <option value="" disabled>
-                                            Choisir un livreur
+                        {peutAssigner && livraison.statut !== 'livree' && (
+                            <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground sm:flex-row sm:items-center sm:gap-3">
+                                Responsable
+                                <select
+                                    value={livraison.responsable_id ?? ''}
+                                    onChange={(e) =>
+                                        assignerResponsable(
+                                            livraison.id,
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="h-11 rounded-lg border border-border bg-surface px-3 text-base text-foreground focus:border-primary focus:ring-2 focus:ring-primary/30 focus:outline-none"
+                                >
+                                    <option value="" disabled>
+                                        Choisir un livreur
+                                    </option>
+                                    {livreurs.map((livreur) => (
+                                        <option
+                                            key={livreur.id}
+                                            value={livreur.id}
+                                        >
+                                            {livreur.name}
                                         </option>
-                                        {livreurs.map((livreur) => (
-                                            <option key={livreur.id} value={livreur.id}>
-                                                {livreur.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
-                            )}
+                                    ))}
+                                </select>
+                            </label>
+                        )}
 
-                            {!abonnementSuspendu &&
-                                livraison.statut !== 'livree' &&
-                                (enCours === livraison.id ? (
-                                    <form onSubmit={submit} className="flex items-center gap-2">
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            step="any"
-                                            inputMode="decimal"
-                                            value={data.quantite}
-                                            onChange={(e) => setData('quantite', e.target.value)}
-                                            className="border p-1"
-                                            autoFocus
-                                        />
-                                        <button type="submit" disabled={processing} className="border px-3 py-1">
-                                            Confirmer
-                                        </button>
-                                        <button type="button" onClick={() => setEnCours(null)} className="border px-3 py-1">
-                                            Annuler
-                                        </button>
-                                        {errors.quantite && <p className="text-sm text-red-600">{errors.quantite}</p>}
-                                    </form>
-                                ) : (
-                                    <button onClick={() => setEnCours(livraison.id)} className="w-fit border px-3 py-1">
-                                        Marquer comme livrée
-                                    </button>
-                                ))}
-                        </li>
-                    ))}
-                </ul>
+                        {!abonnementSuspendu &&
+                            livraison.statut !== 'livree' &&
+                            (enCours === livraison.id ? (
+                                <form
+                                    onSubmit={submit}
+                                    className="flex flex-wrap items-center gap-2"
+                                >
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        step="any"
+                                        inputMode="decimal"
+                                        value={data.quantite}
+                                        onChange={(e) =>
+                                            setData('quantite', e.target.value)
+                                        }
+                                        className="w-32"
+                                        autoFocus
+                                    />
+                                    <Button
+                                        type="submit"
+                                        size="sm"
+                                        loading={processing}
+                                    >
+                                        Confirmer
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => setEnCours(null)}
+                                    >
+                                        Annuler
+                                    </Button>
+                                    {errors.quantite && (
+                                        <p className="w-full text-sm text-danger">
+                                            {errors.quantite}
+                                        </p>
+                                    )}
+                                </form>
+                            ) : (
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    className="w-fit"
+                                    onClick={() => setEnCours(livraison.id)}
+                                >
+                                    Marquer comme livrée
+                                </Button>
+                            ))}
+                    </Card>
+                ))}
             </div>
-        </>
+        </AppShell>
     );
 }

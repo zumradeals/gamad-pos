@@ -1,5 +1,10 @@
 import { Head, useForm } from '@inertiajs/react';
-import { useEffect, type FormEventHandler } from 'react';
+import { useEffect } from 'react';
+import type { FormEventHandler } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { FormField } from '@/components/ui/form-field';
+import { Input } from '@/components/ui/input';
 
 export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
@@ -28,41 +33,53 @@ export default function Login() {
     return (
         <>
             <Head title="Connexion" />
-            <div className="flex min-h-screen items-center justify-center bg-white text-black dark:bg-black dark:text-white">
-                <form onSubmit={submit} className="flex w-full max-w-xs flex-col gap-4">
-                    <h1 className="text-xl font-medium">GAMAD POS — Connexion</h1>
+            <div className="flex min-h-screen items-center justify-center bg-background p-4">
+                <Card className="w-full max-w-xs">
+                    <form onSubmit={submit} className="flex flex-col gap-4">
+                        <h1 className="font-display text-xl font-semibold text-foreground">
+                            GAMAD POS
+                        </h1>
 
-                    <div className="flex flex-col gap-1">
-                        <label htmlFor="telephone">Téléphone</label>
-                        <input
-                            id="telephone"
-                            type="tel"
-                            autoComplete="tel"
-                            value={data.telephone}
-                            onChange={(e) => setData('telephone', e.target.value)}
-                            className="border p-2"
-                        />
-                        {errors.telephone && <p className="text-sm text-red-600">{errors.telephone}</p>}
-                    </div>
+                        <FormField
+                            label="Téléphone"
+                            htmlFor="telephone"
+                            error={errors.telephone}
+                        >
+                            <Input
+                                id="telephone"
+                                type="tel"
+                                autoComplete="tel"
+                                value={data.telephone}
+                                onChange={(e) =>
+                                    setData('telephone', e.target.value)
+                                }
+                            />
+                        </FormField>
 
-                    <div className="flex flex-col gap-1">
-                        <label htmlFor="pin">Code PIN</label>
-                        <input
-                            id="pin"
-                            type="password"
-                            inputMode="numeric"
-                            autoComplete="current-password"
-                            value={data.pin}
-                            onChange={(e) => setData('pin', e.target.value)}
-                            className="border p-2"
-                        />
-                        {errors.pin && <p className="text-sm text-red-600">{errors.pin}</p>}
-                    </div>
+                        <FormField
+                            label="Code PIN"
+                            htmlFor="pin"
+                            error={errors.pin}
+                        >
+                            <Input
+                                id="pin"
+                                type="password"
+                                inputMode="numeric"
+                                autoComplete="current-password"
+                                value={data.pin}
+                                onChange={(e) => setData('pin', e.target.value)}
+                            />
+                        </FormField>
 
-                    <button type="submit" disabled={processing} className="bg-black px-4 py-2 text-white dark:bg-white dark:text-black">
-                        Se connecter
-                    </button>
-                </form>
+                        <Button
+                            type="submit"
+                            loading={processing}
+                            className="w-full"
+                        >
+                            Se connecter
+                        </Button>
+                    </form>
+                </Card>
             </div>
         </>
     );

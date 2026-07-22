@@ -1,5 +1,12 @@
 import { Head, useForm } from '@inertiajs/react';
-import { useMemo, useState, type FormEventHandler } from 'react';
+import { useMemo, useState } from 'react';
+import type { FormEventHandler } from 'react';
+import { AppShell } from '@/components/layout/app-shell';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { FormField } from '@/components/ui/form-field';
+import { Input } from '@/components/ui/input';
 
 type Produit = {
     id: number;
@@ -9,26 +16,39 @@ type Produit = {
     stock_disponible: number;
 };
 
-export default function VenteCreate({ produits, abonnementSuspendu }: { produits: Produit[]; abonnementSuspendu: boolean }) {
+export default function VenteCreate({
+    produits,
+    abonnementSuspendu,
+}: {
+    produits: Produit[];
+    abonnementSuspendu: boolean;
+}) {
     const [produit, setProduit] = useState<Produit | null>(null);
     const [confirme, setConfirme] = useState(false);
     const [paiementPartiel, setPaiementPartiel] = useState(false);
     const [livraisonDifferee, setLivraisonDifferee] = useState(false);
 
-    const { data, setData, post, processing, errors, transform, reset } = useForm({
-        produit_id: '',
-        quantite: '1',
-        montant_paye: '',
-        client_nom: '',
-        client_telephone: '',
-        livraison_lieu: '',
-        livraison_date_prevue: '',
-    });
+    const { data, setData, post, processing, errors, transform, reset } =
+        useForm({
+            produit_id: '',
+            quantite: '1',
+            montant_paye: '',
+            client_nom: '',
+            client_telephone: '',
+            livraison_lieu: '',
+            livraison_date_prevue: '',
+        });
 
     const total = useMemo(() => {
-        if (!produit) return 0;
+        if (!produit) {
+            return 0;
+        }
+
         const quantite = parseFloat(data.quantite || '0');
-        return Number(produit.prix_vente) * (Number.isNaN(quantite) ? 0 : quantite);
+
+        return (
+            Number(produit.prix_vente) * (Number.isNaN(quantite) ? 0 : quantite)
+        );
     }, [produit, data.quantite]);
 
     const besoinClient = paiementPartiel || livraisonDifferee;
@@ -39,7 +59,9 @@ export default function VenteCreate({ produits, abonnementSuspendu }: { produits
         client_nom: besoinClient ? formData.client_nom : '',
         client_telephone: besoinClient ? formData.client_telephone : '',
         livraison_lieu: livraisonDifferee ? formData.livraison_lieu : '',
-        livraison_date_prevue: livraisonDifferee ? formData.livraison_date_prevue : '',
+        livraison_date_prevue: livraisonDifferee
+            ? formData.livraison_date_prevue
+            : '',
     }));
 
     const choisirProduit = (p: Produit) => {
@@ -66,149 +88,210 @@ export default function VenteCreate({ produits, abonnementSuspendu }: { produits
     const fieldErrors = errors as Record<string, string>;
 
     return (
-        <>
+        <AppShell title="Vendre">
             <Head title="Vendre" />
-            <div className="min-h-screen bg-white p-6 text-black dark:bg-black dark:text-white">
-                <h1 className="mb-4 text-xl font-medium">Vendre</h1>
 
-                {confirme && <p className="mb-4 border border-green-600 p-3 text-green-700">Vente enregistrée.</p>}
+            {confirme && <Alert variant="success">Vente enregistrée.</Alert>}
 
-                {abonnementSuspendu && (
-                    <p className="mb-4 border border-red-600 p-3 text-red-700">
-                        Abonnement suspendu : renouvelez-le pour reprendre les ventes.
+            {abonnementSuspendu && (
+                <Alert variant="error">
+                    Abonnement suspendu : renouvelez-le pour reprendre les
+                    ventes.
+                </Alert>
+            )}
+
+            {!produit && (
+                <div className="flex flex-col gap-3">
+                    {produits.map((p) => (
+                        <Card key={p.id} className="p-0">
+                            <button
+                                onClick={() => choisirProduit(p)}
+                                className="flex w-full flex-col gap-1 p-4 text-left"
+                            >
+                                <span className="text-base font-medium text-foreground">
+                                    {p.nom}
+                                </span>
+                                <span className="text-sm text-muted-foreground">
+                                    {p.prix_vente} / {p.unite} — stock{' '}
+                                    {p.stock_disponible}
+                                </span>
+                            </button>
+                        </Card>
+                    ))}
+                </div>
+            )}
+
+            {produit && (
+                <form onSubmit={submit} className="flex flex-col gap-4">
+                    <p className="text-base font-medium text-foreground">
+                        {produit.nom}
                     </p>
-                )}
 
-                {!produit && (
-                    <ul className="flex flex-col gap-2">
-                        {produits.map((p) => (
-                            <li key={p.id}>
-                                <button onClick={() => choisirProduit(p)} className="w-full border p-3 text-left">
-                                    <span className="block font-medium">{p.nom}</span>
-                                    <span className="block text-sm text-gray-500">
-                                        {p.prix_vente} / {p.unite} — stock {p.stock_disponible}
-                                    </span>
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                )}
+                    <FormField
+                        label={`Quantité (${produit.unite})`}
+                        htmlFor="quantite"
+                        error={errors.quantite}
+                    >
+                        <Input
+                            id="quantite"
+                            type="number"
+                            min="0"
+                            step="any"
+                            inputMode="decimal"
+                            value={data.quantite}
+                            onChange={(e) =>
+                                setData('quantite', e.target.value)
+                            }
+                        />
+                    </FormField>
 
-                {produit && (
-                    <form onSubmit={submit} className="flex max-w-xs flex-col gap-4">
-                        <p className="font-medium">{produit.nom}</p>
+                    <p className="font-display text-lg font-semibold text-foreground">
+                        Total : {total}
+                    </p>
 
-                        <div className="flex flex-col gap-1">
-                            <label htmlFor="quantite">Quantité ({produit.unite})</label>
-                            <input
-                                id="quantite"
+                    <label className="flex min-h-11 items-center gap-3 text-sm text-foreground">
+                        <input
+                            type="checkbox"
+                            checked={paiementPartiel}
+                            onChange={(e) =>
+                                setPaiementPartiel(e.target.checked)
+                            }
+                            className="size-5 accent-primary"
+                        />
+                        Le client ne paie pas tout aujourd'hui
+                    </label>
+
+                    <label className="flex min-h-11 items-center gap-3 text-sm text-foreground">
+                        <input
+                            type="checkbox"
+                            checked={livraisonDifferee}
+                            onChange={(e) =>
+                                setLivraisonDifferee(e.target.checked)
+                            }
+                            className="size-5 accent-primary"
+                        />
+                        Remettre au client plus tard (livraison)
+                    </label>
+
+                    {paiementPartiel && (
+                        <FormField
+                            label="Montant reçu aujourd'hui"
+                            htmlFor="montant_paye"
+                            error={fieldErrors.montant_paye}
+                        >
+                            <Input
+                                id="montant_paye"
                                 type="number"
                                 min="0"
                                 step="any"
                                 inputMode="decimal"
-                                value={data.quantite}
-                                onChange={(e) => setData('quantite', e.target.value)}
-                                className="border p-2"
+                                value={data.montant_paye}
+                                onChange={(e) =>
+                                    setData('montant_paye', e.target.value)
+                                }
                             />
-                            {errors.quantite && <p className="text-sm text-red-600">{errors.quantite}</p>}
-                        </div>
+                        </FormField>
+                    )}
 
-                        <p className="text-lg font-medium">Total : {total}</p>
-
-                        <label className="flex items-center gap-2 text-sm">
-                            <input type="checkbox" checked={paiementPartiel} onChange={(e) => setPaiementPartiel(e.target.checked)} />
-                            Le client ne paie pas tout aujourd'hui
-                        </label>
-
-                        <label className="flex items-center gap-2 text-sm">
-                            <input type="checkbox" checked={livraisonDifferee} onChange={(e) => setLivraisonDifferee(e.target.checked)} />
-                            Remettre au client plus tard (livraison)
-                        </label>
-
-                        {paiementPartiel && (
-                            <div className="flex flex-col gap-1">
-                                <label htmlFor="montant_paye">Montant reçu aujourd'hui</label>
-                                <input
-                                    id="montant_paye"
-                                    type="number"
-                                    min="0"
-                                    step="any"
-                                    inputMode="decimal"
-                                    value={data.montant_paye}
-                                    onChange={(e) => setData('montant_paye', e.target.value)}
-                                    className="border p-2"
+                    {besoinClient && (
+                        <>
+                            <FormField
+                                label="Nom du client"
+                                htmlFor="client_nom"
+                                error={
+                                    fieldErrors.client_nom ?? fieldErrors.client
+                                }
+                            >
+                                <Input
+                                    id="client_nom"
+                                    type="text"
+                                    value={data.client_nom}
+                                    onChange={(e) =>
+                                        setData('client_nom', e.target.value)
+                                    }
                                 />
-                                {fieldErrors.montant_paye && <p className="text-sm text-red-600">{fieldErrors.montant_paye}</p>}
-                            </div>
-                        )}
+                            </FormField>
 
-                        {besoinClient && (
-                            <>
-                                <div className="flex flex-col gap-1">
-                                    <label htmlFor="client_nom">Nom du client</label>
-                                    <input
-                                        id="client_nom"
-                                        type="text"
-                                        value={data.client_nom}
-                                        onChange={(e) => setData('client_nom', e.target.value)}
-                                        className="border p-2"
-                                    />
-                                    {fieldErrors.client_nom && <p className="text-sm text-red-600">{fieldErrors.client_nom}</p>}
-                                    {fieldErrors.client && <p className="text-sm text-red-600">{fieldErrors.client}</p>}
-                                </div>
+                            <FormField
+                                label="Téléphone du client (optionnel)"
+                                htmlFor="client_telephone"
+                            >
+                                <Input
+                                    id="client_telephone"
+                                    type="text"
+                                    value={data.client_telephone}
+                                    onChange={(e) =>
+                                        setData(
+                                            'client_telephone',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                            </FormField>
+                        </>
+                    )}
 
-                                <div className="flex flex-col gap-1">
-                                    <label htmlFor="client_telephone">Téléphone du client (optionnel)</label>
-                                    <input
-                                        id="client_telephone"
-                                        type="text"
-                                        value={data.client_telephone}
-                                        onChange={(e) => setData('client_telephone', e.target.value)}
-                                        className="border p-2"
-                                    />
-                                </div>
-                            </>
-                        )}
+                    {livraisonDifferee && (
+                        <>
+                            <FormField
+                                label="Lieu de livraison"
+                                htmlFor="livraison_lieu"
+                                error={fieldErrors.livraison_lieu}
+                            >
+                                <Input
+                                    id="livraison_lieu"
+                                    type="text"
+                                    value={data.livraison_lieu}
+                                    onChange={(e) =>
+                                        setData(
+                                            'livraison_lieu',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                            </FormField>
 
-                        {livraisonDifferee && (
-                            <>
-                                <div className="flex flex-col gap-1">
-                                    <label htmlFor="livraison_lieu">Lieu de livraison</label>
-                                    <input
-                                        id="livraison_lieu"
-                                        type="text"
-                                        value={data.livraison_lieu}
-                                        onChange={(e) => setData('livraison_lieu', e.target.value)}
-                                        className="border p-2"
-                                    />
-                                    {fieldErrors.livraison_lieu && <p className="text-sm text-red-600">{fieldErrors.livraison_lieu}</p>}
-                                </div>
+                            <FormField
+                                label="Date prévue (optionnel)"
+                                htmlFor="livraison_date_prevue"
+                            >
+                                <Input
+                                    id="livraison_date_prevue"
+                                    type="date"
+                                    value={data.livraison_date_prevue}
+                                    onChange={(e) =>
+                                        setData(
+                                            'livraison_date_prevue',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                            </FormField>
+                        </>
+                    )}
 
-                                <div className="flex flex-col gap-1">
-                                    <label htmlFor="livraison_date_prevue">Date prévue (optionnel)</label>
-                                    <input
-                                        id="livraison_date_prevue"
-                                        type="date"
-                                        value={data.livraison_date_prevue}
-                                        onChange={(e) => setData('livraison_date_prevue', e.target.value)}
-                                        className="border p-2"
-                                    />
-                                </div>
-                            </>
-                        )}
+                    {!abonnementSuspendu && (
+                        <Button
+                            type="submit"
+                            loading={processing}
+                            className="w-full"
+                        >
+                            {paiementPartiel
+                                ? 'Encaisser et enregistrer la dette'
+                                : 'Encaisser en espèces'}
+                        </Button>
+                    )}
 
-                        {!abonnementSuspendu && (
-                            <button type="submit" disabled={processing} className="bg-black px-4 py-2 text-white dark:bg-white dark:text-black">
-                                {paiementPartiel ? 'Encaisser et enregistrer la dette' : 'Encaisser en espèces'}
-                            </button>
-                        )}
-
-                        <button type="button" onClick={() => setProduit(null)} className="border px-4 py-2">
-                            Annuler
-                        </button>
-                    </form>
-                )}
-            </div>
-        </>
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setProduit(null)}
+                        className="w-full"
+                    >
+                        Annuler
+                    </Button>
+                </form>
+            )}
+        </AppShell>
     );
 }
