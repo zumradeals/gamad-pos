@@ -90,4 +90,12 @@ class Cloture extends Model
     {
         return $this->hasMany(Depense::class);
     }
+
+    /**
+     * @return HasMany<MouvementCaisse, $this>
+     */
+    public function mouvementsCaisse(): HasMany
+    {
+        return $this->hasMany(MouvementCaisse::class);
+    }
 }

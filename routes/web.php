@@ -7,6 +7,7 @@ use App\Http\Controllers\Appareils\AppareilMemoriseController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Clotures\ClotureController;
+use App\Http\Controllers\Clotures\MouvementCaisseController;
 use App\Http\Controllers\Creances\VersementController;
 use App\Http\Controllers\Depenses\DepenseController;
 use App\Http\Controllers\Export\ExportController;
@@ -63,6 +64,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/clotures/{cloture}/valider', [ClotureController::class, 'valider'])
         ->middleware('abonnement.actif')
         ->name('clotures.valider');
+
+    Route::post('/mouvements-caisse', [MouvementCaisseController::class, 'store'])
+        ->middleware('abonnement.actif')
+        ->name('mouvements-caisse.store');
 
     Route::post('/abonnements/activer', [AbonnementController::class, 'activer'])->name('abonnements.activer');
 

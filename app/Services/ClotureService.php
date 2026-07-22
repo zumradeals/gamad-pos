@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\RoleEnum;
 use App\Models\Cloture;
 use App\Models\Depense;
+use App\Models\MouvementCaisse;
 use App\Models\Paiement;
 use App\Models\PointDeVente;
 use App\Models\User;
@@ -15,12 +16,16 @@ use Illuminate\Validation\ValidationException;
 class ClotureService
 {
     /**
-     * Open a new clôture for a point de vente. Only a caissier or a
-     * propriétaire may do so, and only one clôture may be ouverte at a time
-     * per point de vente — otherwise which one a payment belongs to would be
-     * ambiguous.
+     * Open a new clôture for a point de vente, with an optional fonds
+     * initial (peut être zéro). Only a caissier or a propriétaire may do so,
+     * and only one clôture may be ouverte at a time per point de vente —
+     * otherwise which one a payment belongs to would be ambiguous. The
+     * fonds initial is recorded as a mouvement_caisse rattaché à la clôture
+     * dès sa création — contrairement aux paiements/versements/dépenses, il
+     * n'y a ici rien à "couvrir" a posteriori : le fonds initial n'existe
+     * que parce que cette clôture s'ouvre, il lui appartient dès l'origine.
      */
-    public function ouvrir(PointDeVente $pointDeVente, User $ouvrePar): Cloture
+    public function ouvrir(PointDeVente $pointDeVente, User $ouvrePar, float $fondsInitial = 0.0): Cloture
     {
         if (! in_array($ouvrePar->role, [RoleEnum::Caissier, RoleEnum::Proprietaire], true)) {
             throw ValidationException::withMessages([
@@ -34,24 +39,97 @@ class ClotureService
             ]);
         }
 
-        return Cloture::create([
+        return DB::transaction(function () use ($pointDeVente, $ouvrePar, $fondsInitial) {
+            $cloture = Cloture::create([
+                'point_de_vente_id' => $pointDeVente->id,
+                'ouverte_a' => now(),
+                'statut' => Cloture::STATUT_OUVERTE,
+            ]);
+
+            $cloture->mouvementsCaisse()->create([
+                'point_de_vente_id' => $pointDeVente->id,
+                'type' => MouvementCaisse::TYPE_FONDS_INITIAL,
+                'montant' => $fondsInitial,
+                'user_id' => $ouvrePar->id,
+            ]);
+
+            return $cloture;
+        });
+    }
+
+    /**
+     * Record a cash movement hors vente (dépôt, retrait, apport) against the
+     * clôture actuellement ouverte pour ce point de vente. Refusé s'il n'y a
+     * pas de clôture ouverte — pas de mouvement de caisse orphelin. Comme le
+     * fonds initial, ce mouvement est rattaché à sa clôture dès sa création,
+     * jamais seulement à la validation : il naît déjà à l'intérieur d'une
+     * clôture ouverte, contrairement aux paiements/versements/dépenses qui
+     * peuvent préexister à toute clôture et n'y sont rattachés qu'au moment
+     * où l'une d'elles les couvre.
+     */
+    public function enregistrerMouvementCaisse(
+        PointDeVente $pointDeVente,
+        string $type,
+        float $montant,
+        ?string $motif,
+        User $createur,
+    ): MouvementCaisse {
+        if (! in_array($type, [MouvementCaisse::TYPE_ENTREE, MouvementCaisse::TYPE_SORTIE], true)) {
+            throw ValidationException::withMessages([
+                'type' => 'Type de mouvement de caisse invalide.',
+            ]);
+        }
+
+        if (! in_array($createur->role, [RoleEnum::Caissier, RoleEnum::Proprietaire], true)) {
+            throw ValidationException::withMessages([
+                'role' => 'Seul un caissier ou un propriétaire peut enregistrer un mouvement de caisse.',
+            ]);
+        }
+
+        $cloture = Cloture::where('point_de_vente_id', $pointDeVente->id)
+            ->where('statut', Cloture::STATUT_OUVERTE)
+            ->first();
+
+        if ($cloture === null) {
+            throw ValidationException::withMessages([
+                'cloture' => 'Aucune clôture ouverte pour ce point de vente.',
+            ]);
+        }
+
+        return $cloture->mouvementsCaisse()->create([
             'point_de_vente_id' => $pointDeVente->id,
-            'ouverte_a' => now(),
-            'statut' => Cloture::STATUT_OUVERTE,
+            'type' => $type,
+            'montant' => $montant,
+            'motif' => $motif,
+            'user_id' => $createur->id,
         ]);
     }
 
     /**
-     * Espèces attendues = somme des paiements espèces + versements espèces du
-     * point de vente jamais encore rattachés à une clôture. Toujours calculé
-     * à la volée, jamais lu depuis un total stocké.
+     * Espèces attendues = fonds initial + entrées − sorties (mouvements de
+     * caisse de la clôture actuellement ouverte) + paiements espèces +
+     * versements espèces client, jamais encore rattachés à une clôture.
+     * Toujours calculé à la volée, jamais lu depuis un total stocké.
+     *
+     * Les versements fournisseur (Chantier 11) sont volontairement exclus :
+     * une dette fournisseur appartient à un Fournisseur, lui-même rattaché à
+     * l'entreprise entière, pas à un point de vente précis (une dette peut
+     * naître d'un achat réceptionné dans un dépôt distinct de tout point de
+     * vente) — il n'existe donc pas de lien fiable entre un versement
+     * fournisseur et la caisse physique d'un point de vente donné, et
+     * versements_fournisseur ne porte d'ailleurs aucune colonne cloture_id.
+     * Un paiement à un fournisseur qui sort réellement de la caisse d'un
+     * point de vente doit être enregistré explicitement comme un mouvement
+     * de caisse de type sortie (avec motif), pas déduit implicitement d'une
+     * dette fournisseur.
      */
     public function especesAttendues(PointDeVente $pointDeVente): float
     {
         $paiements = (float) $this->paiementsNonRattaches($pointDeVente)->sum('montant');
         $versements = (float) $this->versementsNonRattaches($pointDeVente)->sum('montant');
+        $mouvementsCaisse = $this->mouvementsCaisseNetPourPointDeVenteOuvert($pointDeVente);
 
-        return round($paiements + $versements, 2);
+        return round($paiements + $versements + $mouvementsCaisse, 2);
     }
 
     /**
@@ -92,8 +170,9 @@ class ClotureService
             $paiements = $this->paiementsNonRattaches($pointDeVente)->get();
             $versements = $this->versementsNonRattaches($pointDeVente)->get();
             $depenses = $this->depensesNonRattachees($pointDeVente)->get();
+            $mouvementsCaisse = $this->mouvementsCaisseNet($cloture);
 
-            $especesAttendues = round((float) $paiements->sum('montant') + (float) $versements->sum('montant'), 2);
+            $especesAttendues = round((float) $paiements->sum('montant') + (float) $versements->sum('montant') + $mouvementsCaisse, 2);
             $ecart = round($especesComptees - $especesAttendues, 2);
             $depensesTotal = round((float) $depenses->sum('montant'), 2);
 
@@ -178,5 +257,40 @@ class ClotureService
         return Depense::whereNull('cloture_id')
             ->where('statut', Depense::STATUT_VALIDEE)
             ->where('point_de_vente_id', $pointDeVente->id);
+    }
+
+    /**
+     * Net des mouvements de caisse (fonds initial + entrées − sorties) déjà
+     * rattachés à cette clôture précise — contrairement aux méthodes
+     * *NonRattaches ci-dessus, il n'y a pas de filtre whereNull('cloture_id')
+     * à faire ici : ces mouvements sont toujours déjà rattachés.
+     */
+    private function mouvementsCaisseNet(Cloture $cloture): float
+    {
+        $total = MouvementCaisse::where('cloture_id', $cloture->id)
+            ->get()
+            ->sum(fn (MouvementCaisse $mouvement) => $mouvement->type === MouvementCaisse::TYPE_SORTIE
+                ? -(float) $mouvement->montant
+                : (float) $mouvement->montant);
+
+        return round($total, 2);
+    }
+
+    /**
+     * Même calcul que mouvementsCaisseNet(), mais à partir du point de vente
+     * plutôt que d'une clôture déjà en main : résout la clôture ouverte
+     * courante (s'il y en a une) avant de sommer ses mouvements de caisse.
+     */
+    private function mouvementsCaisseNetPourPointDeVenteOuvert(PointDeVente $pointDeVente): float
+    {
+        $clotureOuverte = Cloture::where('point_de_vente_id', $pointDeVente->id)
+            ->where('statut', Cloture::STATUT_OUVERTE)
+            ->first();
+
+        if ($clotureOuverte === null) {
+            return 0.0;
+        }
+
+        return $this->mouvementsCaisseNet($clotureOuverte);
     }
 }
