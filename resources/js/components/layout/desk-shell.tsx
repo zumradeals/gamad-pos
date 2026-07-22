@@ -19,7 +19,7 @@ export function DeskShell({
     const items = navItemsForRole(role);
 
     return (
-        <div className="min-h-screen bg-background">
+        <div data-shell="desktop" className="min-h-screen bg-background">
             <header className="border-b border-border bg-primary text-primary-foreground">
                 <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-4">
                     <div className="flex flex-wrap items-center gap-6">
@@ -56,7 +56,10 @@ export function DeskShell({
                 </div>
             </header>
 
-            <main className="mx-auto w-full max-w-5xl px-6 py-6">
+            <main
+                data-shell-main
+                className="mx-auto w-full max-w-5xl px-6 py-6"
+            >
                 <div className="flex flex-col gap-4">{children}</div>
             </main>
         </div>

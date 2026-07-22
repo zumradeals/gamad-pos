@@ -19,7 +19,10 @@ export function MobileShell({
     const items = navItemsForRole(role);
 
     return (
-        <div className="flex min-h-screen flex-col bg-background">
+        <div
+            data-shell="mobile"
+            className="flex min-h-screen flex-col bg-background"
+        >
             <header className="flex h-14 shrink-0 items-center justify-between bg-primary px-4 text-primary-foreground">
                 <span className="font-display text-lg font-semibold">
                     {title}
@@ -33,7 +36,10 @@ export function MobileShell({
                 </button>
             </header>
 
-            <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 p-4 pb-24">
+            <main
+                data-shell-main
+                className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 p-4 pb-24"
+            >
                 {children}
             </main>
 
