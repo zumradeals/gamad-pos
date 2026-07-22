@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Abonnements\AbonnementController;
+use App\Http\Controllers\Achats\AchatController;
+use App\Http\Controllers\Achats\VersementFournisseurController;
 use App\Http\Controllers\Appareils\AppareilMemoriseController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
@@ -68,4 +70,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/fournisseurs', [FournisseurController::class, 'index'])->name('fournisseurs.index');
     Route::post('/fournisseurs', [FournisseurController::class, 'store'])->name('fournisseurs.store');
     Route::patch('/fournisseurs/{fournisseur}', [FournisseurController::class, 'update'])->name('fournisseurs.update');
+
+    Route::post('/achats', [AchatController::class, 'store'])
+        ->middleware('abonnement.actif')
+        ->name('achats.store');
+
+    Route::post('/dettes-fournisseur/{detteFournisseur}/versements', [VersementFournisseurController::class, 'store'])
+        ->middleware('abonnement.actif')
+        ->name('dettes-fournisseur.versements.store');
 });
