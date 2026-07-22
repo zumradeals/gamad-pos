@@ -231,6 +231,25 @@ conformément au principe des "petites graines", §10 document de passation.)*
   toujours conservé dans l'historique de la clôture, même après une correction
   postérieure.
 
+### H3. Les espèces attendues comptent tout encaissement réel, quelle que soit son origine métier
+- **Pourquoi** : un acompte de commande (Chantier 14) réglé en espèces est un
+  encaissement physique dans la caisse du point de vente, au même titre qu'un
+  paiement ou un versement de vente — l'exclure sous-estime la caisse réelle et
+  désynchronise le rapport (Chantier 15) de la clôture (découvert précisément
+  par cet écart entre les deux).
+- **Où elle vit** : ClotureService::especesAttendues() (paiements et
+  versements non rattachés) couvre les paiements/créances liés à une Vente
+  *et* ceux liés à une Commande, jamais l'un sans l'autre.
+- **Comment elle est protégée** : test reproduisant le cas exact ayant révélé
+  l'écart (acompte de commande en espèces) et vérifiant qu'il entre bien dans
+  especesAttendues().
+- **Note de rétroactivité (Chantier 16)** : les clôtures déjà validées avant
+  ce correctif gardent leur especes_attendues et leur écart figés tels quels
+  (H1/H2, jamais réécrits). Un paiement/versement de commande antérieur à ce
+  correctif n'a jamais eu son cloture_id renseigné ; il reste non rattaché et
+  sera simplement récupéré par la prochaine clôture validée pour ce point de
+  vente — aucune migration de données, aucun backfill.
+
 ---
 
 ## Invariants encore à confirmer (zone grise assumée)
@@ -245,15 +264,6 @@ décisions encore ouvertes dans la Matrice des rôles :
   vente.
 - La règle de priorité quand un versement sur créance et une correction de stock
   liée à un retour surviennent dans la même fenêtre de clôture.
-- ClotureService::especesAttendues() ne compte aujourd'hui que les paiements et
-  versements liés à une Vente (whereHas('vente', ...)) — un acompte de commande
-  en espèces (Chantier 14) n'entre dans aucune clôture, alors qu'il s'agit bien
-  d'argent physiquement encaissé au point de vente. Découvert en écrivant
-  RapportService (Chantier 15), qui lui compte cet encaissement dans ses
-  recettes. Reste à trancher : faut-il étendre especesAttendues() lui-même aux
-  commandes (et si oui, quel effet sur les clôtures déjà validées avant ce
-  chantier), ou est-ce un choix délibéré à documenter comme tel ? Chantier
-  séparé, pas un correctif improvisé en marge d'un rapport en lecture seule.
 
 Ces cas ne doivent pas recevoir de comportement par défaut improvisé dans le
 code : ils doivent remonter ici, être tranchés explicitement, puis migrer dans

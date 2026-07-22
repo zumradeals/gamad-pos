@@ -75,13 +75,16 @@ class RapportService
      * couvre toute la période demandée, qu'elle ait ou non déjà été
      * "avalée" par une clôture depuis.
      *
-     * Limite documentée : ClotureService::especesAttendues() lui-même ne
-     * couvre encore que les paiements/versements liés à une Vente — un
-     * acompte de commande en espèces n'est aujourd'hui compté dans aucune
-     * clôture (trou hors périmètre de ce chantier, purement lecture seule ;
-     * consigné dans le Catalogue des invariants). Recettes, ici, couvre
-     * volontairement aussi la commande, car un rapport doit refléter tout
-     * encaissement réel, quelle que soit son origine.
+     * Mise à jour Chantier 16 : l'écart constaté ici avec
+     * ClotureService::especesAttendues() (qui ne couvrait alors que les
+     * paiements/versements liés à une Vente) a été comblé — especesAttendues()
+     * compte désormais lui aussi les acomptes de commande. Les deux méthodes
+     * calculent donc maintenant le même ensemble pour la portion
+     * paiements+versements, l'une bornée par clôture non rattachée, l'autre
+     * par période ; le doublon de filtre qui en résulte entre les deux
+     * classes n'a volontairement pas été factorisé ici pour rester dans le
+     * périmètre de ce correctif (voir ClotureService::depensesSurPeriode()
+     * pour l'équivalent déjà factorisé côté dépenses).
      *
      * Les versements fournisseur (Chantier 11) restent exclus, pour la même
      * raison déjà documentée dans ClotureService::especesAttendues() : une

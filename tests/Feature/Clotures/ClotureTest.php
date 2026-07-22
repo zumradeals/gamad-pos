@@ -3,6 +3,7 @@
 namespace Tests\Feature\Clotures;
 
 use App\Enums\RoleEnum;
+use App\Models\Client;
 use App\Models\Cloture;
 use App\Models\Creance;
 use App\Models\Entreprise;
@@ -12,6 +13,8 @@ use App\Models\Produit;
 use App\Models\User;
 use App\Models\Versement;
 use App\Services\ClotureService;
+use App\Services\CommandeService;
+use App\Services\CreanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -222,5 +225,45 @@ class ClotureTest extends TestCase
 
         $deuxieme = $clotures->valider($deuxieme, 500, $this->caissier);
         $this->assertSame(0.0, (float) $deuxieme->ecart);
+    }
+
+    /**
+     * Chantier 16 (correctif) : reproduit exactement le cas qui a révélé
+     * l'écart au Chantier 15 — un acompte de commande en espèces (et le
+     * versement qui solde sa créance) est un encaissement physique réel au
+     * point de vente. Avant ce correctif, especesAttendues() l'ignorait
+     * entièrement (whereHas('vente', ...) seul) alors que
+     * RapportService::recettes() le comptait déjà — les deux méthodes
+     * doivent désormais s'accorder.
+     */
+    public function test_especes_attendues_counts_commande_down_payments_and_their_creance_versements(): void
+    {
+        $produit = $this->creerProduitAvecStock('Ciment', 1000, 20);
+
+        $clotures = app(ClotureService::class);
+        $cloture = $clotures->ouvrir($this->pointDeVente, $this->caissier);
+
+        $client = Client::factory()->for($this->pointDeVente)->create();
+
+        // Acompte de 400 sur une commande de 1000 : solde de 600 en créance.
+        $commande = app(CommandeService::class)->creer(
+            client: $client,
+            pointDeVente: $this->pointDeVente,
+            lignes: [['produit_id' => $produit->id, 'quantite' => 1, 'prix_unitaire' => 1000]],
+            montantPaye: 400,
+        );
+
+        $creanceCommande = Creance::where('commande_id', $commande->id)->firstOrFail();
+        app(CreanceService::class)->enregistrerVersement($creanceCommande, 600);
+
+        // 400 (acompte) + 600 (versement du solde) = 1000, malgré leur origine "commande".
+        $this->assertSame(1000.0, $clotures->especesAttendues($this->pointDeVente));
+
+        $cloture = $clotures->valider($cloture, 1000, $this->caissier);
+        $this->assertSame(1000.0, (float) $cloture->especes_attendues);
+        $this->assertSame(0.0, (float) $cloture->ecart);
+
+        $this->assertSame($cloture->id, Paiement::where('commande_id', $commande->id)->firstOrFail()->cloture_id);
+        $this->assertSame($cloture->id, Versement::where('creance_id', $creanceCommande->id)->firstOrFail()->cloture_id);
     }
 }

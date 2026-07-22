@@ -112,6 +112,30 @@ class ClotureService
      * versements espèces client, jamais encore rattachés à une clôture.
      * Toujours calculé à la volée, jamais lu depuis un total stocké.
      *
+     * Chantier 16 (correctif) : couvre désormais aussi bien les paiements
+     * (acomptes) et créances nés d'une commande (Chantier 14) que ceux nés
+     * d'une vente — un acompte en espèces est un encaissement physique réel
+     * au point de vente, quelle que soit l'origine qui l'a produit.
+     * L'écart découvert au Chantier 15 (RapportService::recettes() les
+     * comptait déjà, especesAttendues() non) est ainsi comblé.
+     *
+     * Choix explicite sur la rétroactivité : AUCUN correctif rétroactif
+     * n'est appliqué aux clôtures déjà validées avant ce chantier — leur
+     * especes_attendues et leur écart restent exactement ce qu'ils étaient
+     * au moment de la validation (invariants H1/H2 : une clôture validée
+     * n'est jamais réécrite, un écart déjà constaté n'est jamais corrigé
+     * silencieusement). Concrètement, un paiement ou versement lié à une
+     * commande n'a jamais eu son cloture_id renseigné avant ce correctif
+     * (l'ancienne requête ne le sélectionnait pas) : il reste donc encore
+     * aujourd'hui avec cloture_id = NULL, même s'il date d'une période déjà
+     * couverte par une clôture validée entre-temps. Ce correctif ne
+     * l'attache pas rétroactivement à cette clôture-là (déjà figée) ; il
+     * sera simplement récupéré par la prochaine clôture validée pour ce
+     * point de vente — exactement le même mécanisme de rattrapage
+     * "non-rattaché" qui existe déjà pour tout paiement de vente en retard.
+     * Aucune migration de données, aucun backfill : rien à écrire, la
+     * requête elle-même suffit à rattraper le passé au bon moment.
+     *
      * Les versements fournisseur (Chantier 11) sont volontairement exclus :
      * une dette fournisseur appartient à un Fournisseur, lui-même rattaché à
      * l'entreprise entière, pas à un point de vente précis (une dette peut
@@ -256,18 +280,34 @@ class ClotureService
         });
     }
 
+    /**
+     * Un paiement en espèces de ce point de vente, qu'il vienne d'une vente
+     * ou d'un acompte de commande (Chantier 14) — jamais les deux relations
+     * renseignées à la fois sur un même paiement (Chantier 14), donc les
+     * deux branches du orWhereHas ne se chevauchent jamais.
+     */
     private function paiementsNonRattaches(PointDeVente $pointDeVente)
     {
         return Paiement::whereNull('cloture_id')
             ->where('mode', Paiement::MODE_ESPECES)
-            ->whereHas('vente', fn ($query) => $query->where('point_de_vente_id', $pointDeVente->id));
+            ->where(function ($query) use ($pointDeVente) {
+                $query->whereHas('vente', fn ($q) => $q->where('point_de_vente_id', $pointDeVente->id))
+                    ->orWhereHas('commande', fn ($q) => $q->where('point_de_vente_id', $pointDeVente->id));
+            });
     }
 
+    /**
+     * Même règle que paiementsNonRattaches() : la créance réglée par ce
+     * versement peut venir d'une vente ou d'une commande.
+     */
     private function versementsNonRattaches(PointDeVente $pointDeVente)
     {
         return Versement::whereNull('cloture_id')
             ->where('mode', Versement::MODE_ESPECES)
-            ->whereHas('creance.vente', fn ($query) => $query->where('point_de_vente_id', $pointDeVente->id));
+            ->whereHas('creance', function ($query) use ($pointDeVente) {
+                $query->whereHas('vente', fn ($q) => $q->where('point_de_vente_id', $pointDeVente->id))
+                    ->orWhereHas('commande', fn ($q) => $q->where('point_de_vente_id', $pointDeVente->id));
+            });
     }
 
     private function depensesNonRattachees(PointDeVente $pointDeVente)
